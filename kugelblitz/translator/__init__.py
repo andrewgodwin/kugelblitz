@@ -1,4 +1,7 @@
-import ast
+try:
+    import ast
+except ImportError:
+    from kugelblitz.lib import ast
 
 def translate(tree, **kwargs):
     return {
@@ -10,6 +13,20 @@ def translate(tree, **kwargs):
         ast.Assign: translate_assign,
         ast.Attribute: translate_attribute,
         ast.Num: translate_num,
+        ast.BoolOp: translate_bool_op,
+        ast.BinOp: translate_bin_op,
+        ast.Expr: lambda n: translate(n.value),
+        ast.And: lambda _: '&&',
+        ast.Or: lambda _: '||',
+        ast.Add: lambda _: '+',
+        ast.Sub: lambda _: '-',
+        ast.Mult: lambda _: '*',
+        ast.Div: lambda _: '/',
+        ast.Mod: lambda _: '%',
+        ast.LShift: lambda _: '<<',
+        ast.RShift: lambda _: '>>',
+        ast.BitOr: lambda _: '|',
+        ast.BitXor: lambda _: '',
     }[tree.__class__](tree, **kwargs)
 
 def translate_module(node):
@@ -44,6 +61,14 @@ def translate_name(node):
         return "this"
     else:
         return node.id
+
+def translate_bool_op(node):
+    return " ".join(map(translate, [node.values[0], node.op, node.values[1]]))
+
+def translate_bin_op(node):
+    if isinstance(node.op, ast.Pow):
+        return "Math.pow(%s, %s)" % tuple(map(translate, [node.left, node.right]))
+    return " ".join(map(translate, [node.left, node.op, node.right]))
 
 def translate_attribute(node):
     return "%(left)s.%(right)s" % {
@@ -90,4 +115,3 @@ def translate_class(node):
         'method_defs': ",\n".join(methods),
     }
 
-        

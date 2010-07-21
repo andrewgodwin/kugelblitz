@@ -1,5 +1,8 @@
 import unittest
-import ast
+try:
+    import ast
+except ImportError:
+    from kugelblitz.lib import ast
 from kugelblitz.translator import translate
 
 class SimpleTests(unittest.TestCase):
@@ -52,6 +55,13 @@ class SimpleTests(unittest.TestCase):
             }
             """,
         )
+    
+    def test_bin_op(self):
+        self.assertCompilesTo('a and b', 'a && b')
+        self.assertCompilesTo('a or b', 'a || b')
+    
+    def test_power(self):
+        self.assertCompilesTo('a**b', 'Math.pow(a, b)')
     
     def test_class(self):
         self.assertCompilesTo(
