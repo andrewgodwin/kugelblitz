@@ -16,6 +16,8 @@ def translate(tree, **kwargs):
         ast.BoolOp: translate_bool_op,
         ast.BinOp: translate_bin_op,
         ast.UnaryOp: translate_unary_op,
+        ast.Lambda: translate_lambda,
+        
         ast.Expr: lambda n: translate(n.value),
         ast.And: lambda _: '&&',
         ast.Or: lambda _: '||',
@@ -62,6 +64,12 @@ def translate_function(node, instance_method=False):
 
 def translate_return(node):
     return "return %s;" % translate(node.value)
+
+def translate_lambda(node):
+    return "function(%(args_def)s) {\nreturn %(body_def)s;\n}" % {
+        'args_def': ", ".join([arg.id for arg in node.args.args]),
+        'body_def': translate(node.body),
+    }
 
 def translate_name(node):
     if node.id == "self":
