@@ -1,3 +1,4 @@
 syntax: glob
 *.pyc
 *.wpr
+.DS_Store
