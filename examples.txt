@@ -1,0 +1,22 @@
+
+class Foo(object):
+    
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+    
+    def bar(self, z):
+        return z + self.a
+
+------
+
+Foo = function (a, b) {
+    this.a = a
+    this.b = b
+}
+
+Foo.prototype = {
+    bar: function (z) {
+        return z + this.a
+    }
+}
