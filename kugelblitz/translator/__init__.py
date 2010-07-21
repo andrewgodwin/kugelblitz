@@ -1,27 +1,93 @@
 import ast
 
-def translate(tree):
+def translate(tree, **kwargs):
     return {
         ast.FunctionDef: translate_function,
         ast.Module: translate_module,
         ast.Return: translate_return,
         ast.Name: translate_name,
-    }[tree.__class__](tree)
+        ast.ClassDef: translate_class,
+        ast.Assign: translate_assign,
+        ast.Attribute: translate_attribute,
+        ast.Num: translate_num,
+    }[tree.__class__](tree, **kwargs)
 
 def translate_module(node):
     return "\n\n".join(map(translate, node.body))
 
-def translate_function(node):
+def translate_function(node, instance_method=False):
+    """
+    Translates a function. If self_var is not none, it behaves as
+    an instance method.
+    """
     # Generate argument definition
-    args_def = ", ".join([arg.id for arg in node.args.args])
     body_def = "\n".join(map(translate, node.body))
-    return "function (%(args_def)s) { %(body_def)s }" % locals()
+    if instance_method:
+        args_def = ", ".join([arg.id for arg in node.args.args[1:]])
+        return "function (%(args_def)s) { %(body_def)s }" % {
+            "args_def": args_def,
+            "body_def": body_def,
+        }
+    else:
+        args_def = ", ".join([arg.id for arg in node.args.args])
+        return "function %(name)s (%(args_def)s) { %(body_def)s }" % {
+            "args_def": args_def,
+            "body_def": body_def,
+            "name": node.name,
+        }
 
 def translate_return(node):
     return "return %s;" % translate(node.value)
 
 def translate_name(node):
-    return node.id
+    if node.id == "self":
+        return "this"
+    else:
+        return node.id
 
+def translate_attribute(node):
+    return "%(left)s.%(right)s" % {
+        "left": translate(node.value),
+        "right": node.attr,
+    }
+
+def translate_assign(node):
+    assert len(node.targets) == 1, "You can only assign to one thing at once"
+    return "%(target)s = %(value)s" % {
+        'value': translate(node.value),
+        'target': translate(node.targets[0]),
+    }
+
+def translate_num(node):
+    return str(node.n)
+
+def translate_class(node):
+    
+    # Is there an __init__?
+    functions = {}
+    for item in node.body:
+        if isinstance(item, ast.FunctionDef):
+            functions[item.name] = item
+
+    # Make constructor def
+    if "__init__" in functions:
+        init_def = translate_function(functions['__init__'], instance_method=True)
+    else:
+        init_def = "function () {}"
+    
+    # Make method defs
+    methods = []
+    for fname, fnode in sorted(functions.items()):
+        if fname != "__init__":
+            methods.append("'%s': %s" % (
+                fname,
+                translate_function(fnode, instance_method=True),
+            ))
+    
+    return "%(name)s = %(init_def)s;\n%(name)s.prototype = { %(method_defs)s }" % {
+        'name': node.name,
+        'init_def': init_def,
+        'method_defs': ",\n".join(methods),
+    }
 
         

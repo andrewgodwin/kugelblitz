@@ -47,8 +47,28 @@ class SimpleTests(unittest.TestCase):
                return a
             """,
             """
-            function (a, b) {
+            function x (a, b) {
                 return a;
+            }
+            """,
+        )
+    
+    def test_class(self):
+        self.assertCompilesTo(
+            """
+            class Foo(object):
+                def __init__(self, a):
+                    self.a = a
+                def bar(self):
+                    return self.a
+                def baz(self):
+                    return 2
+            """,
+            """
+            Foo = function (a) { this.a = a };
+            Foo.prototype = {
+                'bar': function () { return this.a; },
+                'baz': function () { return 2; }
             }
             """,
         )
