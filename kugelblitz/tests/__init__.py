@@ -76,12 +76,34 @@ class SimpleTests(unittest.TestCase):
                     return 2
             """,
             """
-            Foo = function (a) { this.a = a };
+            Foo = function (a) { this.a = a; };
             Foo.prototype = {
                 'CONST': 45,
                 'bar': function () { return this.a; },
                 'baz': function () { return 2; }
             }
+            """,
+        )
+    
+    def test_tuple_assignment(self):
+        self.assertCompilesTo(
+            """
+            x, y = 1, 2
+            """,
+            """
+            x = 1;
+            y = 2;
+            """,
+        )
+    
+    def test_multi_assignment(self):
+        self.assertCompilesTo(
+            """
+            x = y = 1
+            """,
+            """
+            x = 1;
+            y = 1;
             """,
         )
 

@@ -13,6 +13,7 @@ def translate(tree, **kwargs):
         ast.Assign: translate_assign,
         ast.Attribute: translate_attribute,
         ast.Num: translate_num,
+        ast.Tuple: translate_tuple,
         ast.BoolOp: translate_bool_op,
         ast.BinOp: translate_bin_op,
         ast.Expr: lambda n: translate(n.value),
@@ -62,6 +63,10 @@ def translate_name(node):
     else:
         return node.id
     
+def translate_tuple(node):
+    print dir(node)
+    return "????"
+    
 def translate_bool_op(node):
     return " ".join(map(translate, [node.values[0], node.op, node.values[1]]))
 
@@ -77,11 +82,13 @@ def translate_attribute(node):
     }
 
 def translate_assign(node):
-    assert len(node.targets) == 1, "You can only assign to one thing at once"
-    return "%(target)s = %(value)s" % {
-        'value': translate(node.value),
-        'target': translate(node.targets[0]),
-    }
+    return "\n".join([
+        "%(target)s = %(value)s;" % {
+            'value': translate(node.value),
+            'target': translate(target),
+        }
+        for target in node.targets
+    ])
 
 def translate_num(node):
     return str(node.n)
