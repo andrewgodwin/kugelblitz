@@ -67,6 +67,7 @@ class SimpleTests(unittest.TestCase):
         self.assertCompilesTo(
             """
             class Foo(object):
+                CONST = 45
                 def __init__(self, a):
                     self.a = a
                 def bar(self):
@@ -77,6 +78,7 @@ class SimpleTests(unittest.TestCase):
             """
             Foo = function (a) { this.a = a };
             Foo.prototype = {
+                'CONST': 45,
                 'bar': function () { return this.a; },
                 'baz': function () { return 2; }
             }

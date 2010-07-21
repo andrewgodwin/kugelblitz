@@ -61,7 +61,7 @@ def translate_name(node):
         return "this"
     else:
         return node.id
-
+    
 def translate_bool_op(node):
     return " ".join(map(translate, [node.values[0], node.op, node.values[1]]))
 
@@ -90,9 +90,15 @@ def translate_class(node):
     
     # Is there an __init__?
     functions = {}
+    assigns = {}
+    classes = {}
     for item in node.body:
         if isinstance(item, ast.FunctionDef):
             functions[item.name] = item
+        elif isinstance(item, ast.Assign):
+            assert len(item.targets) == 1, "You can only assign to a single item."
+            assert isinstance(item.targets[0], ast.Name), "You can only assign to simple names in classes"
+            assigns[item.targets[0].id] = item.value
 
     # Make constructor def
     if "__init__" in functions:
@@ -100,18 +106,25 @@ def translate_class(node):
     else:
         init_def = "function () {}"
     
+    # Make other defs
+    body = []
+    for aname, anode in sorted(assigns.items()):
+        body.append("'%s': %s" % (
+            aname,
+            translate(anode),
+        ))
+    
     # Make method defs
-    methods = []
     for fname, fnode in sorted(functions.items()):
         if fname != "__init__":
-            methods.append("'%s': %s" % (
+            body.append("'%s': %s" % (
                 fname,
                 translate_function(fnode, instance_method=True),
             ))
     
+    
     return "%(name)s = %(init_def)s;\n%(name)s.prototype = { %(method_defs)s }" % {
         'name': node.name,
         'init_def': init_def,
-        'method_defs': ",\n".join(methods),
+        'method_defs': ",\n".join(body),
     }
-
