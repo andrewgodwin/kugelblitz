@@ -5,6 +5,21 @@ class ExprTranslator(BaseTranslator):
     
     def translate(self):
         return self.sub_translate(self.node.value)
+    
+
+class BoolOpTranslator(BaseTranslator):
+    
+    ops = {
+        ast.And: '&&',
+        ast.Or: '||',
+    }
+    
+    def translate(self):
+        return "(%(left)s %(op)s %(right)s)" % {
+            'left': self.sub_translate(self.node.values[0]),
+            'op': self.ops[self.node.op.__class__],
+            'right': self.sub_translate(self.node.values[1]),
+        }
 
 
 class BinOpTranslator(BaseTranslator):

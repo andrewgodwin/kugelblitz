@@ -1,8 +1,8 @@
 from kugelblitz.translator.base import ast
 from kugelblitz.translator.exceptions import CompileError
 from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator
-from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator
-from kugelblitz.translator.values import NumTranslator
+from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator
+from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator
 
 def get_translator(node):
     try:
@@ -44,7 +44,7 @@ def get_translator(node):
             ast.Continue: None,
             
             # expr
-            ast.BoolOp: None,
+            ast.BoolOp: BoolOpTranslator,
             ast.BinOp: BinOpTranslator,
             ast.UnaryOp: None,
             ast.Lambda: None,
@@ -62,20 +62,15 @@ def get_translator(node):
             ast.Num: NumTranslator,
             ast.Str: None,
             
-            ast.Attribute: translate_attribute,
-            ast.Subscript: translate_subscript,
-            ast.Name: translate_name,
-            ast.List: translate_list,
-            ast.Tuple: translate_tuple,
+            #ast.Attribute: translate_attribute,
+            #ast.Subscript: translate_subscript,
+            ast.Name: NameTranslator,
+            ast.List: ListTranslator,
+            ast.Tuple: ListTranslator,
             
             # slice handled in translate_subscript
             
             # boolop
-            ast.And: lambda _: '&&',
-            ast.Or: lambda _: '||',
-            
-            # operator
-            
             
             # unary op
             ast.Invert: lambda _: '~',
