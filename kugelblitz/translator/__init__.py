@@ -73,9 +73,6 @@ def get_translator(node):
         
             ast.Attribute: wrap_old_translator(translate_attribute),
             ast.Subscript: wrap_old_translator(translate_subscript),
-            ast.Name: wrap_old_translator(translate_name),
-            ast.List: wrap_old_translator(translate_list),
-            ast.Tuple: wrap_old_translator(translate_tuple),
             
             #ast.Attribute: translate_attribute,
             #ast.Subscript: translate_subscript,
@@ -223,39 +220,6 @@ def translate_if_exp(node):
         'orelse': translate(node.orelse),
     }
 
-def translate_name(node):
-    if node.id == "self":
-        return "this"
-    if node.id == "None":
-        return "null"
-    else:
-        return node.id
-    
-def translate_tuple(node):
-    return translate_list(node)
-
-def translate_list(node):
-    return "[%s]" % ", ".join(map(translate, node.elts))
-    
-def translate_bool_op(node):
-    return "(%(left)s %(op)s %(right)s)" % {
-        'left': translate(node.values[0]),
-        'op': translate(node.op),
-        'right': translate(node.values[1]),
-    }
-
-def translate_bin_op(node):
-    if isinstance(node.op, ast.Pow):
-        return "Math.pow(%s, %s)" % tuple(map(translate, [node.left, node.right]))
-    return "(%(left)s %(op)s %(right)s)" % {
-        'left': translate(node.left),
-        'op': translate(node.op),
-        'right': translate(node.right),
-    }
-
-def translate_unary_op(node):
-    return "".join(map(translate, [node.op, node.operand]))
-
 def translate_attribute(node):
     return "%(left)s.%(right)s" % {
         "left": translate(node.value),
@@ -288,15 +252,6 @@ def translate_call(node):
     return "%(func)s(%(args_def)s)" % {
         "func": func,
         "args_def": args_def,
-    }
-
-def translate_compare(node):
-    assert len(node.ops) == 1, "Cannot have multiple comparison"
-    assert len(node.comparators) == 1, "Cannot have multiple comparison"
-    return "%(left)s %(op)s %(comparator)s" % {
-        "left": translate(node.left),
-        "op": translate(node.ops[0]),
-        "comparator": translate(node.comparators[0]),
     }
     
 def translate_subscript(node):
