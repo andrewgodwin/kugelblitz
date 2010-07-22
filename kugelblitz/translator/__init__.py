@@ -52,7 +52,7 @@ def translate_body(body, line_separator='\n'):
             s.append(translate(node))
         else:
             s.append('%s;' % translate(node))
-    return ''.join(s)
+    return '\n'.join(s)
 
 def translate_module(node):
     return translate_body(node.body, line_separator='\n\n')
@@ -151,7 +151,7 @@ def translate_assign(node):
                 if len(target.elts) != len(node.value.elts):
                     raise CompileError("Assigning one tuple to another of different length.")
                 for t, v in zip(target.elts, node.value.elts):
-                    statements.append("%(target)s = %(value)s;" % {
+                    statements.append("%(target)s = %(value)s" % {
                         'value': translate(v),
                         'target': translate(t),
                     })
@@ -159,18 +159,21 @@ def translate_assign(node):
             else:
                 raise CompileError("Assigning a non-tuple to a tuple.")
         else:
-            statements.append("%(target)s = %(value)s;" % {
+            statements.append("%(target)s = %(value)s" % {
                 'value': translate(node.value),
                 'target': translate(target),
             })
-    return "\n".join(statements)
+    return ";\n".join(statements)
 
 def translate_num(node):
     return str(node.n)
 
 def translate_call(node):
-    print dir(node)
-    return "?call?"
+    args_def = ", ".join(map(translate, node.args))
+    return "%(func)s(%(args_def)s)" % {
+        "func": translate(node.func),
+        "args_def": args_def,
+    }
 
 def translate_class(node):
     

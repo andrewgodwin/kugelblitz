@@ -236,6 +236,10 @@ class SimpleTests(unittest.TestCase):
             foo(1, 2, 3)
             """,
             """
+            var foo = function (x, y, z) {
+                return (x + y);
+            };
+            foo(1, 2, 3);
             """,
         )
 
