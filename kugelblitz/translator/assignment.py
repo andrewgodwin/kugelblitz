@@ -1,6 +1,6 @@
 from kugelblitz.translator.base import BaseTranslator, ast
 from kugelblitz.translator.exceptions import CompileError
-
+from kugelblitz.translator.expressions import BinOpTranslator
 
 class AssignTranslator(BaseTranslator):
     
@@ -34,3 +34,15 @@ class AssignTranslator(BaseTranslator):
             else:
                 statements.append(self.translate_single_assign(target, self.node.value))
         return ";\n".join(statements)
+    
+    
+class AugAssignTranslator(BaseTranslator):
+    
+    ops = BinOpTranslator.ops
+    
+    def translate(self):
+        return '%(target)s %(op)s= %(value)s' % {
+            'target': self.sub_translate(self.node.target),
+            'op': self.ops[self.node.op.__class__],
+            'value': self.sub_translate(self.node.value),
+        }
