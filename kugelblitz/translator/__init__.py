@@ -33,7 +33,7 @@ def translate(tree, **kwargs):
         ast.TryFinally: None,
         ast.Assert: None,
         
-        ast.Import: ast.Import: lambda n: "// import...",
+        ast.Import: lambda n: "// import...",
         ast.ImportFrom: None,
         
         ast.Exec: None,
@@ -51,10 +51,10 @@ def translate(tree, **kwargs):
         ast.Lambda: translate_lambda,
         ast.IfExp: translate_if_exp,
         ast.Dict: None,
-        ast.Set: None,
+        # ast.Set: None,
         ast.ListComp: None,
-        ast.SetComp: None,
-        ast.DictComp: None,
+        # ast.SetComp: None,
+        # ast.DictComp: None,
         ast.GeneratorExp: None,
         ast.Yield: None,
         ast.Compare: translate_compare,
@@ -96,7 +96,7 @@ def translate(tree, **kwargs):
         
         # cmpop
         ast.Eq: lambda _: '==',
-        ast.NotEq: lambda _: '!='
+        ast.NotEq: lambda _: '!=',
         ast.Lt: lambda _: '<',
         ast.LtE: lambda _: '<=',
         ast.Gt: lambda _: '>',
