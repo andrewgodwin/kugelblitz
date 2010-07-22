@@ -1,8 +1,17 @@
-from kugelblitz.translator.base import ast
+from kugelblitz.translator.base import ast, BaseTranslator
 from kugelblitz.translator.exceptions import CompileError
 from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator
-from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator
+from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator
 from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator
+
+def wrap_old_translator(func):
+    class WrappedTranslator(BaseTranslator):
+        def translate(self):
+            return func(self.node)
+    return WrappedTranslator
+
+def translate(node):
+    return get_translator(node).translate()
 
 def get_translator(node):
     try:
@@ -13,21 +22,21 @@ def get_translator(node):
             
             # stmt
             ast.FunctionDef: FunctionTranslator,
-            ast.ClassDef: None,
-            ast.Return: None,
+            ast.ClassDef: wrap_old_translator(translate_class),
+            ast.Return: wrap_old_translator(translate_return),
             
-            ast.Delete: None,
-            ast.Assign: None,
-            ast.AugAssign: None,
+            ast.Delete: wrap_old_translator(translate_delete),
+            ast.Assign: wrap_old_translator(translate_assign),
+            ast.AugAssign: wrap_old_translator(translate_aug_assign),
             
             ast.Print: None,
             
             ast.For: None,
             ast.While: None,
-            ast.If: None,
+            ast.If: wrap_old_translator(translate_if),
             ast.With: None,
             
-            ast.Raise: None,
+            ast.Raise: wrap_old_translator(translate_raise),
             ast.TryExcept: None,
             ast.TryFinally: None,
             ast.Assert: None,
@@ -46,9 +55,9 @@ def get_translator(node):
             # expr
             ast.BoolOp: BoolOpTranslator,
             ast.BinOp: BinOpTranslator,
-            ast.UnaryOp: None,
-            ast.Lambda: None,
-            ast.IfExp: None,
+            ast.UnaryOp: UnaryOpTranslator,
+            ast.Lambda: wrap_old_translator(translate_lambda),
+            ast.IfExp: wrap_old_translator(translate_if_exp),
             ast.Dict: None,
             #ast.Set: None, Not in 2.6
             ast.ListComp: None,
@@ -56,27 +65,23 @@ def get_translator(node):
             #ast.DictComp: None, Not in 2.6
             ast.GeneratorExp: None,
             ast.Yield: None,
-            ast.Compare: None,
-            ast.Call: None,
+            ast.Compare: wrap_old_translator(translate_compare),
+            ast.Call: wrap_old_translator(translate_call),
             ast.Repr: None,
-            ast.Num: NumTranslator,
+            ast.Num: wrap_old_translator(NumTranslator),
             ast.Str: None,
+        
+            ast.Attribute: wrap_old_translator(translate_attribute),
+            ast.Subscript: wrap_old_translator(translate_subscript),
+            ast.Name: wrap_old_translator(translate_name),
+            ast.List: wrap_old_translator(translate_list),
+            ast.Tuple: wrap_old_translator(translate_tuple),
             
             #ast.Attribute: translate_attribute,
             #ast.Subscript: translate_subscript,
             ast.Name: NameTranslator,
             ast.List: ListTranslator,
             ast.Tuple: ListTranslator,
-            
-            # slice handled in translate_subscript
-            
-            # boolop
-            
-            # unary op
-            ast.Invert: lambda _: '~',
-            ast.Not: lambda _: '!',
-            ast.UAdd: lambda _: '+',
-            ast.USub: lambda _: '-',
             
             # cmpop
             ast.Eq: lambda _: '==',
@@ -93,138 +98,6 @@ def get_translator(node):
     except TypeError:
         raise CompileError("No translator available for %s." % node.__class__.__name__)
 
-def translate(tree, **kwargs):
-    return {
-        # mod
-        ast.Module: translate_module,
-        ast.Expression: translate_module,
-        
-        # stmt
-        ast.FunctionDef: translate_function,
-        ast.ClassDef: translate_class,
-        ast.Return: translate_return,
-        
-        ast.Delete: translate_delete,
-        ast.Assign: translate_assign,
-        ast.AugAssign: translate_aug_assign,
-        
-        ast.Print: None,
-        
-        ast.For: None,
-        ast.While: None,
-        ast.If: translate_if,
-        ast.With: None,
-        
-        ast.Raise: translate_raise,
-        ast.TryExcept: None,
-        ast.TryFinally: None,
-        ast.Assert: None,
-        
-        ast.Import: lambda n: "// import...",
-        ast.ImportFrom: None,
-        
-        ast.Exec: None,
-        
-        ast.Global: None,
-        ast.Expr: lambda n: translate(n.value),
-        ast.Pass: None,
-        ast.Break: None,
-        ast.Continue: None,
-        
-        # expr
-        ast.BoolOp: translate_bool_op,
-        ast.BinOp: translate_bin_op,
-        ast.UnaryOp: translate_unary_op,
-        ast.Lambda: translate_lambda,
-        ast.IfExp: translate_if_exp,
-        ast.Dict: None,
-        # ast.Set: None,
-        ast.ListComp: None,
-        # ast.SetComp: None,
-        # ast.DictComp: None,
-        ast.GeneratorExp: None,
-        ast.Yield: None,
-        ast.Compare: translate_compare,
-        ast.Call: translate_call,
-        ast.Repr: None,
-        ast.Num: translate_num,
-        ast.Str: None,
-        
-        ast.Attribute: translate_attribute,
-        ast.Subscript: translate_subscript,
-        ast.Name: translate_name,
-        ast.List: translate_list,
-        ast.Tuple: translate_tuple,
-        
-        # slice handled in translate_subscript
-        
-        # boolop
-        ast.And: lambda _: '&&',
-        ast.Or: lambda _: '||',
-        
-        # operator
-        ast.Add: lambda _: '+',
-        ast.Sub: lambda _: '-',
-        ast.Mult: lambda _: '*',
-        ast.Div: lambda _: '/', # TODO: Handle integers
-        ast.Mod: lambda _: '%',
-        ast.LShift: lambda _: '<<',
-        ast.RShift: lambda _: '>>',
-        ast.BitOr: lambda _: '|',
-        ast.BitXor: lambda _: '^',
-        ast.BitAnd: lambda _: '&',
-        ast.FloorDiv: lambda _: '/',
-        
-        # unary op
-        ast.Invert: lambda _: '~',
-        ast.Not: lambda _: '!',
-        ast.UAdd: lambda _: '+',
-        ast.USub: lambda _: '-',
-        
-        # cmpop
-        ast.Eq: lambda _: '==',
-        ast.NotEq: lambda _: '!=',
-        ast.Lt: lambda _: '<',
-        ast.LtE: lambda _: '<=',
-        ast.Gt: lambda _: '>',
-        ast.GtE: lambda _: '>=',
-        ast.Is: None,
-        ast.IsNot: None,
-        ast.In: None,
-        ast.NotIn: None,
-    }[tree.__class__](tree, **kwargs)
-
-def translate_body(body, line_separator='\n'):
-    s = []
-    for node in body:
-        if isinstance(node, (ast.If,)):
-            s.append(translate(node))
-        else:
-            s.append('%s;' % translate(node))
-    return '\n'.join(s)
-
-def translate_module(node):
-    return translate_body(node.body, line_separator='\n\n')
-
-def translate_function(node, instance_method=False):
-    """
-    Translates a function. If self_var is not none, it behaves as
-    an instance method.
-    """
-    # Generate argument definition
-    if instance_method:
-        args_def = ", ".join([arg.id for arg in node.args.args[1:]])
-        return "function (%(args_def)s) { %(body_def)s }" % {
-            "args_def": args_def,
-            "body_def": translate_body(node.body),
-        }
-    else:
-        args_def = ", ".join([arg.id for arg in node.args.args])
-        return "var %(name)s = function (%(args_def)s) { %(body_def)s }" % {
-            "args_def": args_def,
-            "body_def": translate_body(node.body),
-            "name": node.name,
-        }
 
 def translate_class(node):
     

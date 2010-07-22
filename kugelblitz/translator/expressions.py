@@ -20,6 +20,22 @@ class BoolOpTranslator(BaseTranslator):
             'op': self.ops[self.node.op.__class__],
             'right': self.sub_translate(self.node.values[1]),
         }
+    
+
+class UnaryOpTranslator(BaseTranslator):
+    
+    ops = {
+        ast.Invert: '~',
+        ast.Not: '!',
+        ast.UAdd: '+',
+        ast.USub: '-',
+    }
+    
+    def translate(self):
+        return "%(op)s%(operand)s" % {
+            'op': self.ops[self.node.op.__class__],
+            'operand': self.sub_translate(self.node.operand),
+        }
 
 
 class BinOpTranslator(BaseTranslator):
