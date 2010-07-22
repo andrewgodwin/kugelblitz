@@ -316,6 +316,26 @@ class SimpleTests(unittest.TestCase):
     def test_aug_assign(self):
         self.assertCompilesTo('x += 1', 'x += 1;')
     
+    def test_pass(self):
+        self.assertCompilesTo(
+            """
+            def x():
+                pass
+            """,
+            """
+            var x = function () { };
+            """
+        )
+        self.assertCompilesTo(
+            """
+            if x:
+                pass
+            """,
+            """
+            if (x) { }
+            """
+        )
+    
     def test_complex_class(self):
         self.assertCompilesTo(
             """

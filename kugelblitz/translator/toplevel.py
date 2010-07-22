@@ -8,8 +8,10 @@ class BodyTranslator(BaseTranslator):
     def translate_body(self, body):
         s = []
         for node in body:
+            if isinstance(node, ast.Pass):
+                continue
             translator = self.get_translator(node)
-            if isinstance(node, (ast.If,)):
+            if isinstance(node, ast.If):
                 s.append(translator.translate())
             else:
                 s.append('%s;' % translator.translate())

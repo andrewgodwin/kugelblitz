@@ -49,7 +49,6 @@ def get_translator(node):
             
             ast.Global: None,
             ast.Expr: ExprTranslator,
-            ast.Pass: None,
             ast.Break: None,
             ast.Continue: None,
             
@@ -84,7 +83,9 @@ def get_translator(node):
 def translate_body(body, line_separator='\n'):
     s = []
     for node in body:
-        if isinstance(node, (ast.If,)):
+        if isinstance(node, ast.Pass):
+            continue
+        elif isinstance(node, ast.If):
             s.append(translate(node))
         else:
             s.append('%s;' % translate(node))
