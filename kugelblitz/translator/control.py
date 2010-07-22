@@ -32,3 +32,29 @@ class RaiseTranslator(BodyTranslator):
 class ReturnTranslator(BodyTranslator):
     def translate(self):
         return "return %s" % self.sub_translate(self.node.value)
+    
+class CallTranslator(BodyTranslator):
+    def translate(self):
+        func = self.sub_translate(self.node.func)
+        if func == 'isinstance':
+            if len(self.node.args) != 2:
+                raise TypeError("isinstance expected 2 arguments, got %s" % len(args))
+            s = []
+            if isinstance(self.node.args[1], (ast.List, ast.Tuple)):
+                for n in self.node.args[1].elts:
+                    s.append("%s instanceof %s" % (
+                        self.sub_translate(self.node.args[0]),
+                        self.sub_translate(n),
+                    ))
+            else:
+                s.append("%s instanceof %s" % tuple(map(self.sub_translate, self.node.args)))
+            return " || ".join(s)
+        elif func == 'len':
+            if len(self.node.args) != 1:
+                raise TypeError("len() takes exactly one argument (%s given)" % len(args))
+            return "%s.length" % self.sub_translate(self.node.args[0])
+        args_def = ", ".join(map(self.sub_translate, self.node.args))
+        return "%(func)s(%(args_def)s)" % {
+            "func": func,
+            "args_def": args_def,
+        }

@@ -4,7 +4,7 @@ from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator,
 from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator, CompareTranslator
 from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator
 from kugelblitz.translator.assignment import AssignTranslator, AugAssignTranslator
-from kugelblitz.translator.control import IfTranslator, IfExprTranslator, RaiseTranslator, ReturnTranslator
+from kugelblitz.translator.control import IfTranslator, IfExprTranslator, RaiseTranslator, ReturnTranslator, CallTranslator
 
 def wrap_old_translator(func):
     class WrappedTranslator(BaseTranslator):
@@ -67,7 +67,7 @@ def get_translator(node):
             ast.GeneratorExp: None,
             ast.Yield: None,
             ast.Compare: CompareTranslator,
-            ast.Call: wrap_old_translator(translate_call),
+            ast.Call: CallTranslator,
             ast.Repr: None,
             ast.Num: NumTranslator,
             ast.Str: None,
@@ -88,31 +88,6 @@ def translate_attribute(node):
     return "%(left)s.%(right)s" % {
         "left": translate(node.value),
         "right": node.attr,
-    }
-
-def translate_call(node):
-    func = translate(node.func)
-    if func == 'isinstance':
-        if len(node.args) != 2:
-            raise TypeError("isinstance expected 2 arguments, got %s" % len(args))
-        s = []
-        if isinstance(node.args[1], (ast.List, ast.Tuple)):
-            for n in node.args[1].elts:
-                s.append("%s instanceof %s" % (
-                    translate(node.args[0]),
-                    translate(n),
-                ))
-        else:
-            s.append("%s instanceof %s" % tuple(map(translate, node.args)))
-        return " || ".join(s)
-    elif func == 'len':
-        if len(node.args) != 1:
-            raise TypeError("len() takes exactly one argument (%s given)" % len(args))
-        return "%s.length" % translate(node.args[0])
-    args_def = ", ".join(map(translate, node.args))
-    return "%(func)s(%(args_def)s)" % {
-        "func": func,
-        "args_def": args_def,
     }
     
 def translate_subscript(node):
