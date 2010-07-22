@@ -117,6 +117,8 @@ def translate_if_exp(node):
 def translate_name(node):
     if node.id == "self":
         return "this"
+    if node.id == "None":
+        return "null"
     else:
         return node.id
     
