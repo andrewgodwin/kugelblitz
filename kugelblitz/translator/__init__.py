@@ -1,7 +1,7 @@
 from kugelblitz.translator.base import ast, BaseTranslator
 from kugelblitz.translator.exceptions import CompileError
 from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator
-from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator
+from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator, CompareTranslator
 from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator
 
 def wrap_old_translator(func):
@@ -64,17 +64,14 @@ def get_translator(node):
             #ast.DictComp: None, Not in 2.6
             ast.GeneratorExp: None,
             ast.Yield: None,
-            ast.Compare: wrap_old_translator(translate_compare),
+            ast.Compare: CompareTranslator,
             ast.Call: wrap_old_translator(translate_call),
             ast.Repr: None,
-            ast.Num: wrap_old_translator(NumTranslator),
+            ast.Num: NumTranslator,
             ast.Str: None,
         
             ast.Attribute: wrap_old_translator(translate_attribute),
             ast.Subscript: wrap_old_translator(translate_subscript),
-            ast.Name: wrap_old_translator(translate_name),
-            ast.List: wrap_old_translator(translate_list),
-            ast.Tuple: wrap_old_translator(translate_tuple),
             
             #ast.Attribute: translate_attribute,
             #ast.Subscript: translate_subscript,
@@ -83,19 +80,38 @@ def get_translator(node):
             ast.Tuple: ListTranslator,
             
             # cmpop
-            ast.Eq: lambda _: '==',
-            ast.NotEq: lambda _: '!=',
-            ast.Lt: lambda _: '<',
-            ast.LtE: lambda _: '<=',
-            ast.Gt: lambda _: '>',
-            ast.GtE: lambda _: '>=',
-            ast.Is: None,
-            ast.IsNot: None,
-            ast.In: None,
-            ast.NotIn: None,
         }[node.__class__](node)
     except TypeError:
         raise CompileError("No translator available for %s." % node.__class__.__name__)
+
+def translate_body(body, line_separator='\n'):
+    s = []
+    for node in body:
+        if isinstance(node, (ast.If,)):
+            s.append(translate(node))
+        else:
+            s.append('%s;' % translate(node))
+    return '\n'.join(s)
+
+def translate_function(node, instance_method=False):
+    """
+    Translates a function. If self_var is not none, it behaves as
+    an instance method.
+    """
+    # Generate argument definition
+    if instance_method:
+        args_def = ", ".join([arg.id for arg in node.args.args[1:]])
+        return "function (%(args_def)s) { %(body_def)s }" % {
+            "args_def": args_def,
+            "body_def": translate_body(node.body),
+        }
+    else:
+        args_def = ", ".join([arg.id for arg in node.args.args])
+        return "var %(name)s = function (%(args_def)s) { %(body_def)s }" % {
+            "args_def": args_def,
+            "body_def": translate_body(node.body),
+            "name": node.name,
+        }
 
 def translate_class(node):
     
@@ -209,39 +225,6 @@ def translate_if_exp(node):
         'orelse': translate(node.orelse),
     }
 
-def translate_name(node):
-    if node.id == "self":
-        return "this"
-    if node.id == "None":
-        return "null"
-    else:
-        return node.id
-    
-def translate_tuple(node):
-    return translate_list(node)
-
-def translate_list(node):
-    return "[%s]" % ", ".join(map(translate, node.elts))
-    
-def translate_bool_op(node):
-    return "(%(left)s %(op)s %(right)s)" % {
-        'left': translate(node.values[0]),
-        'op': translate(node.op),
-        'right': translate(node.values[1]),
-    }
-
-def translate_bin_op(node):
-    if isinstance(node.op, ast.Pow):
-        return "Math.pow(%s, %s)" % tuple(map(translate, [node.left, node.right]))
-    return "(%(left)s %(op)s %(right)s)" % {
-        'left': translate(node.left),
-        'op': translate(node.op),
-        'right': translate(node.right),
-    }
-
-def translate_unary_op(node):
-    return "".join(map(translate, [node.op, node.operand]))
-
 def translate_attribute(node):
     return "%(left)s.%(right)s" % {
         "left": translate(node.value),
@@ -274,15 +257,6 @@ def translate_call(node):
     return "%(func)s(%(args_def)s)" % {
         "func": func,
         "args_def": args_def,
-    }
-
-def translate_compare(node):
-    assert len(node.ops) == 1, "Cannot have multiple comparison"
-    assert len(node.comparators) == 1, "Cannot have multiple comparison"
-    return "%(left)s %(op)s %(comparator)s" % {
-        "left": translate(node.left),
-        "op": translate(node.ops[0]),
-        "comparator": translate(node.comparators[0]),
     }
     
 def translate_subscript(node):

@@ -67,3 +67,28 @@ class BinOpTranslator(BaseTranslator):
                 'op': self.ops[self.node.op.__class__],
                 'right': self.sub_translate(self.node.right),
             }
+
+
+class CompareTranslator(BaseTranslator):
+    
+    ops = {
+        ast.Eq: '==',
+        ast.NotEq: '!=',
+        ast.Lt: '<',
+        ast.LtE: '<=',
+        ast.Gt: '>',
+        ast.GtE: '>=',
+        ast.Is: None,
+        ast.IsNot: None,
+        ast.In: None,
+        ast.NotIn: None,
+    }
+    
+    def translate(self):
+        assert len(self.node.ops) == 1, "Cannot have multiple comparison"
+        assert len(self.node.comparators) == 1, "Cannot have multiple comparison"
+        return "%(left)s %(op)s %(comparator)s" % {
+            "left": self.sub_translate(self.node.left),
+            "op": self.ops[self.node.ops[0].__class__],
+            "comparator": self.sub_translate(self.node.comparators[0]),
+        }
