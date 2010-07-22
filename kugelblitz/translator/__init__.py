@@ -4,6 +4,7 @@ from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator
 from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator, CompareTranslator
 from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator
 from kugelblitz.translator.assignment import AssignTranslator, AugAssignTranslator
+from kugelblitz.translator.control import IfTranslator, IfExprTranslator
 
 def wrap_old_translator(func):
     class WrappedTranslator(BaseTranslator):
@@ -34,7 +35,7 @@ def get_translator(node):
             
             ast.For: None,
             ast.While: None,
-            ast.If: wrap_old_translator(translate_if),
+            ast.If: IfTranslator,
             ast.With: None,
             
             ast.Raise: wrap_old_translator(translate_raise),
@@ -57,7 +58,7 @@ def get_translator(node):
             ast.BinOp: BinOpTranslator,
             ast.UnaryOp: UnaryOpTranslator,
             ast.Lambda: wrap_old_translator(translate_lambda),
-            ast.IfExp: wrap_old_translator(translate_if_exp),
+            ast.IfExp: IfExprTranslator,
             ast.Dict: None,
             #ast.Set: None, Not in 2.6
             ast.ListComp: None,
@@ -163,25 +164,6 @@ def translate_lambda(node):
     return "function (%(args_def)s) {\nreturn %(body_def)s\n}" % {
         'args_def': ", ".join([arg.id for arg in node.args.args]),
         'body_def': translate_body([node.body]),
-    }
-
-def translate_if(node):
-    s = ["if (%(test_def)s) { %(body_def)s }" % {
-        'test_def': translate(node.test),
-        'body_def': translate_body(node.body),
-    }]
-    if node.orelse:
-        s.append("else { %(orelse_def)s }" % {
-            's': s,
-            'orelse_def': translate_body(node.orelse),
-        })
-    return '\n'.join(s)
-
-def translate_if_exp(node):
-    return '%(test)s ? %(body)s : %(orelse)s' % {
-        'test': translate(node.test),
-        'body': translate(node.body),
-        'orelse': translate(node.orelse),
     }
 
 def translate_attribute(node):
