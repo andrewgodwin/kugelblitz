@@ -56,12 +56,46 @@ class SimpleTests(unittest.TestCase):
             """,
         )
     
-    def test_bin_op(self):
+    def test_bool_op(self):
         self.assertCompilesTo('a and b', 'a && b')
         self.assertCompilesTo('a or b', 'a || b')
     
+    def test_bin_op(self):
+        for o in ['+', '-', '*', '%', '<<', '>>', '|', '^', '&']:
+            expr = 'a %s b' % o
+            self.assertCompilesTo(expr, expr)
+        self.assertCompilesTo('a // b', 'a / b')
+    
     def test_power(self):
         self.assertCompilesTo('a**b', 'Math.pow(a, b)')
+    
+    def test_unary_op(self):
+        for o in ['~', '+', '-']:
+            expr = '%sa' % o
+            self.assertCompilesTo(expr, expr)
+        self.assertCompilesTo('not a', '!a')
+    
+    def test_lambda(self):
+        self.assertCompilesTo(
+            """
+            lambda: 1
+            """,
+            """
+            function() {
+                return 1;
+            }
+            """
+        )
+        self.assertCompilesTo(
+            """
+            lambda a: a + 1
+            """,
+            """
+            function(a) {
+                return a + 1;
+            }
+            """
+        )
     
     def test_class(self):
         self.assertCompilesTo(

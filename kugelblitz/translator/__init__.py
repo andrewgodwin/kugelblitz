@@ -16,18 +16,27 @@ def translate(tree, **kwargs):
         ast.Tuple: translate_tuple,
         ast.BoolOp: translate_bool_op,
         ast.BinOp: translate_bin_op,
+        ast.UnaryOp: translate_unary_op,
+        ast.Lambda: translate_lambda,
+        
         ast.Expr: lambda n: translate(n.value),
         ast.And: lambda _: '&&',
         ast.Or: lambda _: '||',
         ast.Add: lambda _: '+',
         ast.Sub: lambda _: '-',
         ast.Mult: lambda _: '*',
-        ast.Div: lambda _: '/',
+        ast.Div: lambda _: '/', # TODO: Handle integers
         ast.Mod: lambda _: '%',
         ast.LShift: lambda _: '<<',
         ast.RShift: lambda _: '>>',
         ast.BitOr: lambda _: '|',
-        ast.BitXor: lambda _: '',
+        ast.BitXor: lambda _: '^',
+        ast.BitAnd: lambda _: '&',
+        ast.FloorDiv: lambda _: '/',
+        ast.Invert: lambda _: '~',
+        ast.Not: lambda _: '!',
+        ast.UAdd: lambda _: '+',
+        ast.USub: lambda _: '-',
     }[tree.__class__](tree, **kwargs)
 
 def translate_module(node):
@@ -57,6 +66,12 @@ def translate_function(node, instance_method=False):
 def translate_return(node):
     return "return %s;" % translate(node.value)
 
+def translate_lambda(node):
+    return "function(%(args_def)s) {\nreturn %(body_def)s;\n}" % {
+        'args_def': ", ".join([arg.id for arg in node.args.args]),
+        'body_def': translate(node.body),
+    }
+
 def translate_name(node):
     if node.id == "self":
         return "this"
@@ -74,6 +89,9 @@ def translate_bin_op(node):
     if isinstance(node.op, ast.Pow):
         return "Math.pow(%s, %s)" % tuple(map(translate, [node.left, node.right]))
     return " ".join(map(translate, [node.left, node.op, node.right]))
+
+def translate_unary_op(node):
+    return "".join(map(translate, [node.op, node.operand]))
 
 def translate_attribute(node):
     return "%(left)s.%(right)s" % {
