@@ -70,17 +70,12 @@ def get_translator(node):
             ast.Repr: None,
             ast.Num: NumTranslator,
             ast.Str: None,
-        
             ast.Attribute: wrap_old_translator(translate_attribute),
-            ast.Subscript: wrap_old_translator(translate_subscript),
-            
-            #ast.Attribute: translate_attribute,
-            #ast.Subscript: translate_subscript,
+            ast.Subscript: wrap_old_translator(translate_subscript),            
             ast.Name: NameTranslator,
             ast.List: ListTranslator,
             ast.Tuple: ListTranslator,
             
-            # cmpop
         }[node.__class__](node)
     except TypeError:
         raise CompileError("No translator available for %s." % node.__class__.__name__)
