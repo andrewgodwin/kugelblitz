@@ -48,7 +48,6 @@ def get_translator(node):
             
             ast.Global: None,
             ast.Expr: ExprTranslator,
-            ast.Pass: None,
             ast.Break: None,
             ast.Continue: None,
             

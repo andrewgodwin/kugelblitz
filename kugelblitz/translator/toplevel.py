@@ -9,7 +9,9 @@ class BodyTranslator(BaseTranslator):
         s = []
         for node in body:
             translator = self.get_translator(node)
-            if isinstance(node, (ast.If,)):
+            if isinstance(node, ast.Pass):
+                continue
+            elif isinstance(node, ast.If):
                 s.append(translator.translate())
             else:
                 s.append('%s;' % translator.translate())
