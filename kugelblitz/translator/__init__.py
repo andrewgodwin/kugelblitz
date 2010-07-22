@@ -8,31 +8,74 @@ class CompileError(RuntimeError):
 
 def translate(tree, **kwargs):
     return {
-        ast.FunctionDef: translate_function,
+        # mod
         ast.Module: translate_module,
-        ast.Return: translate_return,
-        ast.Name: translate_name,
+        ast.Expression: None,
+        
+        # stmt
+        ast.FunctionDef: translate_function,
         ast.ClassDef: translate_class,
+        ast.Return: translate_return,
+        
+        ast.Delete: None,
         ast.Assign: translate_assign,
-        ast.Attribute: translate_attribute,
-        ast.Num: translate_num,
-        ast.Tuple: translate_tuple,
+        ast.AugAssign: None,
+        
+        ast.Print: None,
+        
+        ast.For: None,
+        ast.While: None,
+        ast.If: translate_if,
+        ast.With: None,
+        
+        ast.Raise: translate_raise,
+        ast.TryExcept: None,
+        ast.TryFinally: None,
+        ast.Assert: None,
+        
+        ast.Import: ast.Import: lambda n: "// import...",
+        ast.ImportFrom: None,
+        
+        ast.Exec: None,
+        
+        ast.Global: None,
+        ast.Expr: lambda n: translate(n.value),
+        ast.Pass: None,
+        ast.Break: None,
+        ast.Continue: None,
+        
+        # expr
         ast.BoolOp: translate_bool_op,
         ast.BinOp: translate_bin_op,
-        ast.Compare: translate_compare,
         ast.UnaryOp: translate_unary_op,
         ast.Lambda: translate_lambda,
-        ast.Call: translate_call,
-        ast.If: translate_if,
         ast.IfExp: translate_if_exp,
-        ast.Subscript: translate_subscript,
-        ast.Raise: translate_raise,
-        ast.List: translate_list,
-        ast.Import: lambda n: "// import...",
-        ast.Expr: lambda n: translate(n.value),
+        ast.Dict: None,
+        ast.Set: None,
+        ast.ListComp: None,
+        ast.SetComp: None,
+        ast.DictComp: None,
+        ast.GeneratorExp: None,
+        ast.Yield: None,
+        ast.Compare: translate_compare,
+        ast.Call: translate_call,
+        ast.Repr: None,
+        ast.Num: translate_num,
+        ast.Str: None,
         
+        ast.Attribute: translate_attribute,
+        ast.Subscript: translate_subscript,
+        ast.Name: translate_name,
+        ast.List: translate_list,
+        ast.Tuple: translate_tuple,
+        
+        # slice handled in translate_subscript
+        
+        # boolop
         ast.And: lambda _: '&&',
         ast.Or: lambda _: '||',
+        
+        # operator
         ast.Add: lambda _: '+',
         ast.Sub: lambda _: '-',
         ast.Mult: lambda _: '*',
@@ -44,16 +87,24 @@ def translate(tree, **kwargs):
         ast.BitXor: lambda _: '^',
         ast.BitAnd: lambda _: '&',
         ast.FloorDiv: lambda _: '/',
+        
+        # unary op
         ast.Invert: lambda _: '~',
         ast.Not: lambda _: '!',
         ast.UAdd: lambda _: '+',
         ast.USub: lambda _: '-',
         
+        # cmpop
         ast.Eq: lambda _: '==',
+        ast.NotEq: lambda _: '!='
         ast.Lt: lambda _: '<',
         ast.LtE: lambda _: '<=',
         ast.Gt: lambda _: '>',
         ast.GtE: lambda _: '>=',
+        ast.Is: None,
+        ast.IsNot: None,
+        ast.In: None,
+        ast.NotIn: None,
     }[tree.__class__](tree, **kwargs)
 
 def translate_body(body, line_separator='\n'):
@@ -185,9 +236,17 @@ def translate_num(node):
     return str(node.n)
 
 def translate_call(node):
+    func = translate(node.func)
+    if func == 'isinstance':
+        if len(node.args) != 2:
+            raise TypeError("isinstance expected 2 arguments, got %s" % len(args))
+        # TODO
+        #if isinstance(node.args[1], (ast.List, ast.Tuple)):
+            
+        return "%s instanceof %s" % tuple(map(translate, node.args))
     args_def = ", ".join(map(translate, node.args))
     return "%(func)s(%(args_def)s)" % {
-        "func": translate(node.func),
+        "func": func,
         "args_def": args_def,
     }
 
