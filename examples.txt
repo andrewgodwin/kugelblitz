@@ -11,8 +11,28 @@ class Foo(object):
 ------
 
 Foo = function (a, b) {
+    return new Foo_class(a, b);
+}
+
+Foo_class = function (a, b) {
     this.a = a
     this.b = b
+}
+
+Foo_class.prototype = {
+    bar: function (z) {
+        return z + this.a
+    }
+}
+------
+
+Foo = function (a, b) {
+    if (this == undefined) {
+        return new Foo(a, b);
+    } else {
+        this.a = a;
+        this.b = b;
+    }
 }
 
 Foo.prototype = {
@@ -20,3 +40,10 @@ Foo.prototype = {
         return z + this.a
     }
 }
+
+
+======================
+
+import voidlands.model.vector
+
+x = voidlands.model.vector()
