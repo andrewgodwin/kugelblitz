@@ -253,6 +253,16 @@ class SimpleTests(unittest.TestCase):
             """,
         )
         
+    def test_compare(self):
+        self.assertCompilesTo(
+            """
+            3 == 4
+            """,
+            """
+            3 == 4;
+            """,
+        )
+        
     def test_complex_class(self):
         self.assertCompilesTo(
             """

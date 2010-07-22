@@ -25,6 +25,8 @@ def translate(tree, **kwargs):
         ast.Call: translate_call,
         ast.If: translate_if,
         ast.IfExp: translate_if_exp,
+        ast.Subscript: translate_subscript,
+        ast.Raise: translate_raise,
         ast.Expr: lambda n: translate(n.value),
         
         ast.And: lambda _: '&&',
@@ -185,12 +187,23 @@ def translate_call(node):
 def translate_compare(node):
     assert len(node.ops) == 1, "Cannot have multiple comparison"
     assert len(node.comparators) == 1, "Cannot have multiple comparison"
-    return "(%(left)s %(op)s %(comparator)s)" % {
+    return "%(left)s %(op)s %(comparator)s" % {
         "left": translate(node.left),
         "op": translate(node.ops[0]),
         "comparator": translate(node.comparators[0]),
     }
     
+def translate_subscript(node):
+    if isinstance(node.slice, ast.Index):
+        return "%(value)s[%(index)s]" % {
+            "value": translate(node.value),
+            "index": translate(node.slice.value),
+        }
+    else:
+        raise CompileError("Unknown slice type %s" % type(node.slice))
+
+def translate_raise(node):
+    return "throw"
 
 def translate_class(node):
     
