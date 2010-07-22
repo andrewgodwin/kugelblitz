@@ -19,6 +19,7 @@ def translate(tree, **kwargs):
         ast.Tuple: translate_tuple,
         ast.BoolOp: translate_bool_op,
         ast.BinOp: translate_bin_op,
+        ast.Compare: translate_compare,
         ast.UnaryOp: translate_unary_op,
         ast.Lambda: translate_lambda,
         ast.Call: translate_call,
@@ -43,6 +44,12 @@ def translate(tree, **kwargs):
         ast.Not: lambda _: '!',
         ast.UAdd: lambda _: '+',
         ast.USub: lambda _: '-',
+        
+        ast.Eq: lambda _: '==',
+        ast.Lt: lambda _: '<',
+        ast.LtE: lambda _: '<=',
+        ast.Gt: lambda _: '>',
+        ast.GtE: lambda _: '>=',
     }[tree.__class__](tree, **kwargs)
 
 def translate_body(body, line_separator='\n'):
@@ -174,6 +181,16 @@ def translate_call(node):
         "func": translate(node.func),
         "args_def": args_def,
     }
+
+def translate_compare(node):
+    assert len(node.ops) == 1, "Cannot have multiple comparison"
+    assert len(node.comparators) == 1, "Cannot have multiple comparison"
+    return "(%(left)s %(op)s %(comparator)s)" % {
+        "left": translate(node.left),
+        "op": translate(node.ops[0]),
+        "comparator": translate(node.comparators[0]),
+    }
+    
 
 def translate_class(node):
     

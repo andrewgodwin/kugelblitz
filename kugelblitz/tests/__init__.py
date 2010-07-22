@@ -228,6 +228,16 @@ class SimpleTests(unittest.TestCase):
             """,
         )
     
+    def test_bracketing(self):
+        self.assertCompilesTo(
+            """
+            (1 + 2) * (3 + 4)
+            """,
+            """
+            ((1 + 2) * (3 + 4));
+            """,
+        )
+    
     def test_function_call(self):
         self.assertCompilesTo(
             """
@@ -242,6 +252,35 @@ class SimpleTests(unittest.TestCase):
             foo(1, 2, 3);
             """,
         )
+        
+    def test_complex_class(self):
+        self.assertCompilesTo(
+            """
+            class Vector(object):
+    
+                '''
+                A 2D vector class.
+                '''
+                
+                def __init__(self, x, y=None):
+                    if y == None:
+                        if isinstance(x, Vector):
+                            self.x, self.y = x.x, x.y
+                        elif len(x) == 2:
+                            self.x, self.y = x[0], x[1]
+                        else:
+                            raise ValueError("Please pass either a tuple of (x, y), a Vector, or two parameters.")
+                    else:
+                        self.x = x
+                        self.y = y
+                
+                def __add__(self, other):
+                    return Vector(self.x+other.x, self.y+other.y)
+            """,
+            """
+            """,
+        )
+        
 
 if __name__ == "__main__":
     unittest.main()
