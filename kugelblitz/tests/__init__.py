@@ -50,30 +50,31 @@ class SimpleTests(unittest.TestCase):
                return a
             """,
             """
-            function x (a, b) {
+            var x = function (a, b) {
                 return a;
-            }
+            };
             """,
         )
     
     def test_bool_op(self):
-        self.assertCompilesTo('a and b', 'a && b')
-        self.assertCompilesTo('a or b', 'a || b')
+        self.assertCompilesTo('a and b', '(a && b);')
+        self.assertCompilesTo('a or b', '(a || b);')
     
     def test_bin_op(self):
         for o in ['+', '-', '*', '%', '<<', '>>', '|', '^', '&']:
-            expr = 'a %s b' % o
-            self.assertCompilesTo(expr, expr)
-        self.assertCompilesTo('a // b', 'a / b')
+            self.assertCompilesTo('a %s b' % o, '(a %s b);' % o)
+        self.assertCompilesTo('a // b', '(a / b);')
+    
+    def test_grouped_bin_op(self):
+        self.assertCompilesTo('a * (b + c)', '(a * (b + c));')
     
     def test_power(self):
-        self.assertCompilesTo('a**b', 'Math.pow(a, b)')
+        self.assertCompilesTo('a**b', 'Math.pow(a, b);')
     
     def test_unary_op(self):
         for o in ['~', '+', '-']:
-            expr = '%sa' % o
-            self.assertCompilesTo(expr, expr)
-        self.assertCompilesTo('not a', '!a')
+            self.assertCompilesTo('%sa' % o, '%sa;' % o)
+        self.assertCompilesTo('not a', '!a;')
     
     def test_lambda(self):
         self.assertCompilesTo(
@@ -83,7 +84,7 @@ class SimpleTests(unittest.TestCase):
             """
             function() {
                 return 1;
-            }
+            };
             """
         )
         self.assertCompilesTo(
@@ -92,8 +93,94 @@ class SimpleTests(unittest.TestCase):
             """,
             """
             function(a) {
-                return a + 1;
+                return (a + 1);
+            };
+            """
+        )
+    
+    def test_if(self):
+        self.assertCompilesTo(
+            """
+            if x and y:
+                return 1
+            """,
+            """
+            if ((x && y)) {
+                return 1;
             }
+            """
+        )
+        self.assertCompilesTo(
+            """
+            if x:
+                return 1
+            else:
+                return 0
+            """,
+            """
+            if (x) {
+                return 1;
+            }
+            else {
+                return 0;
+            }
+            """
+        )
+        self.assertCompilesTo(
+            """
+            if x:
+                if y:
+                    return y
+                else:
+                    return x
+            else:
+                return 0
+            """,
+            """
+            if (x) {
+                if (y) {
+                    return y;
+                }
+                else {
+                    return x;
+                }
+            }
+            else {
+                return 0;
+            }
+            """
+        )
+        self.assertCompilesTo(
+            """
+            if x:
+                return x
+            elif y:
+                return y
+            else:
+                return 0
+            """,
+            """
+            if (x) {
+                return x;
+            }
+            else {
+                if (y) {
+                    return y;
+                }
+                else {
+                    return 0;
+                }
+            }
+            """
+        )
+    
+    def test_if_exp(self):
+        self.assertCompilesTo(
+            """
+            a = x if y else z
+            """,
+            """
+            a = y ? x : z;
             """
         )
     
@@ -109,11 +196,11 @@ class SimpleTests(unittest.TestCase):
                     return 2
             """,
             """
-            Foo = function (a) { this.a = a };
+            var Foo = function (a) { this.a = a; };
             Foo.prototype = {
                 'bar': function () { return this.a; },
                 'baz': function () { return 2; }
-            }
+            };
             """,
         )
 
