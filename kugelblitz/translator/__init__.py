@@ -138,10 +138,10 @@ def translate(tree, **kwargs):
         ast.Lambda: translate_lambda,
         ast.IfExp: translate_if_exp,
         ast.Dict: None,
-        # ast.Set: None,
+        # ast.Set: None, (not supported on Python 2.5)
         ast.ListComp: None,
-        # ast.SetComp: None,
-        # ast.DictComp: None,
+        # ast.SetComp: None, (not supported on Python 2.5)
+        # ast.DictComp: None, (not supported on Python 2.5)
         ast.GeneratorExp: None,
         ast.Yield: None,
         ast.Compare: translate_compare,
@@ -274,6 +274,18 @@ def translate_return(node):
 def translate_delete(node):
     return ';\n'.join('delete %s' % translate(n) for n in node.targets)
 
+def translate_single_assign(target, value):
+    if isinstance(target, ast.Name):
+        return "var %(target)s = %(value)s" % {
+            'target': translate(target),
+            'value': translate(value),
+        }
+    else:
+        return "%(target)s = %(value)s" % {
+            'target': translate(target),
+            'value': translate(value),
+        }
+    
 def translate_assign(node):
     # For each target...
     statements = []
@@ -286,18 +298,12 @@ def translate_assign(node):
                 if len(target.elts) != len(node.value.elts):
                     raise CompileError("Assigning one tuple to another of different length.")
                 for t, v in zip(target.elts, node.value.elts):
-                    statements.append("%(target)s = %(value)s" % {
-                        'value': translate(v),
-                        'target': translate(t),
-                    })
+                    statements.append(translate_single_assign(t, v))
             # No? Raise an error for now.
             else:
                 raise CompileError("Assigning a non-tuple to a tuple.")
         else:
-            statements.append("%(target)s = %(value)s" % {
-                'value': translate(node.value),
-                'target': translate(target),
-            })
+            statements.append(translate_single_assign(target, node.value))
     return ";\n".join(statements)
 
 def translate_aug_assign(node):
@@ -308,7 +314,7 @@ def translate_aug_assign(node):
     }
 
 def translate_lambda(node):
-    return "function(%(args_def)s) {\nreturn %(body_def)s\n}" % {
+    return "function (%(args_def)s) {\nreturn %(body_def)s\n}" % {
         'args_def': ", ".join([arg.id for arg in node.args.args]),
         'body_def': translate_body([node.body]),
     }

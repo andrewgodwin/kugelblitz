@@ -82,7 +82,7 @@ class SimpleTests(unittest.TestCase):
             lambda: 1
             """,
             """
-            function() {
+            function () {
                 return 1;
             };
             """
@@ -92,7 +92,7 @@ class SimpleTests(unittest.TestCase):
             lambda a: a + 1
             """,
             """
-            function(a) {
+            function (a) {
                 return (a + 1);
             };
             """
@@ -180,7 +180,7 @@ class SimpleTests(unittest.TestCase):
             a = x if y else z
             """,
             """
-            a = y ? x : z;
+            var a = y ? x : z;
             """
         )
     
@@ -206,14 +206,18 @@ class SimpleTests(unittest.TestCase):
             """,
         )
     
+    def test_assign(self):
+        self.assertCompilesTo('x = 1', 'var x = 1;')
+        self.assertCompilesTo('this.x = 1', 'this.x = 1;')
+    
     def test_tuple_assignment(self):
         self.assertCompilesTo(
             """
             x, y = 1, 2
             """,
             """
-            x = 1;
-            y = 2;
+            var x = 1;
+            var y = 2;
             """,
         )
     
@@ -223,8 +227,8 @@ class SimpleTests(unittest.TestCase):
             x = y = 1
             """,
             """
-            x = 1;
-            y = 1;
+            var x = 1;
+            var y = 1;
             """,
         )
     
@@ -300,8 +304,8 @@ class SimpleTests(unittest.TestCase):
             y = x[1:2]
             """,
             """
-            x = [1, 2, 3];
-            y = x.slice(1, 2);
+            var x = [1, 2, 3];
+            var y = x.slice(1, 2);
             """,
         )
     
