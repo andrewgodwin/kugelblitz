@@ -2,6 +2,9 @@ try:
     import ast
 except ImportError:
     from kugelblitz.lib import ast
+    
+from kugelblitz.translator.toplevel import ModuleTranslator
+import kugelblitz.translator.expressions
 
 class CompileError(RuntimeError):
     pass
@@ -96,7 +99,7 @@ def translate(tree, **kwargs):
         
         # cmpop
         ast.Eq: lambda _: '==',
-        ast.NotEq: lambda _: '!='
+        ast.NotEq: lambda _: '!=',
         ast.Lt: lambda _: '<',
         ast.LtE: lambda _: '<=',
         ast.Gt: lambda _: '>',
