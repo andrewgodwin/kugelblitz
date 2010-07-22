@@ -24,7 +24,6 @@ class ModuleTranslator(BodyTranslator):
     """
     
     separator = '\n\n'
-    translates = [ast.Module]
     
     def translate(self):
         return self.translate_body(self.node.body)
@@ -35,14 +34,24 @@ class FunctionTranslator(BodyTranslator):
     Translates a function. Includes function name in output.
     """
     
-    translates = [ast.FunctionDef]
-    
     def translate(self):
         args_def = ", ".join([arg.id for arg in self.node.args.args])
         return "var %(name)s = function (%(args_def)s) { %(body_def)s }" % {
             "args_def": args_def,
             "body_def": self.translate_body(self.node.body),
             "name": self.node.name,
+        }
+
+
+class LambdaTranslator(BodyTranslator):
+    """
+    Translates a function. Includes function name in output.
+    """
+    
+    def translate(self):
+        return "function (%(args_def)s) {\nreturn %(body_def)s\n}" % {
+            'args_def': ", ".join([arg.id for arg in self.node.args.args]),
+            'body_def': self.translate_body([self.node.body]),
         }
     
 

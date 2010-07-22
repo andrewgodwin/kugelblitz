@@ -1,10 +1,10 @@
 from kugelblitz.translator.base import ast, BaseTranslator
 from kugelblitz.translator.exceptions import CompileError
-from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator
+from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator, LambdaTranslator
 from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator, CompareTranslator
 from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator
 from kugelblitz.translator.assignment import AssignTranslator, AugAssignTranslator
-from kugelblitz.translator.control import IfTranslator, IfExprTranslator
+from kugelblitz.translator.control import IfTranslator, IfExprTranslator, RaiseTranslator
 
 def wrap_old_translator(func):
     class WrappedTranslator(BaseTranslator):
@@ -38,7 +38,7 @@ def get_translator(node):
             ast.If: IfTranslator,
             ast.With: None,
             
-            ast.Raise: wrap_old_translator(translate_raise),
+            ast.Raise: RaiseTranslator,
             ast.TryExcept: None,
             ast.TryFinally: None,
             ast.Assert: None,
@@ -57,7 +57,7 @@ def get_translator(node):
             ast.BoolOp: BoolOpTranslator,
             ast.BinOp: BinOpTranslator,
             ast.UnaryOp: UnaryOpTranslator,
-            ast.Lambda: wrap_old_translator(translate_lambda),
+            ast.Lambda: LambdaTranslator,
             ast.IfExp: IfExprTranslator,
             ast.Dict: None,
             #ast.Set: None, Not in 2.6
@@ -160,12 +160,6 @@ def translate_return(node):
 def translate_delete(node):
     return ';\n'.join('delete %s' % translate(n) for n in node.targets)
 
-def translate_lambda(node):
-    return "function (%(args_def)s) {\nreturn %(body_def)s\n}" % {
-        'args_def': ", ".join([arg.id for arg in node.args.args]),
-        'body_def': translate_body([node.body]),
-    }
-
 def translate_attribute(node):
     return "%(left)s.%(right)s" % {
         "left": translate(node.value),
@@ -237,9 +231,6 @@ def translate_subscript(node):
         
     else:
         raise CompileError("Unknown slice type %s" % type(node.slice))
-
-def translate_raise(node):
-    return "throw"
 
 if __name__ == "__main__":
     import sys

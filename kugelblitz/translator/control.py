@@ -24,3 +24,8 @@ class IfExprTranslator(BodyTranslator):
             'body': self.sub_translate(self.node.body),
             'orelse': self.sub_translate(self.node.orelse),
         }
+
+class RaiseTranslator(BodyTranslator):
+    
+    def translate(self):
+        return "throw"
