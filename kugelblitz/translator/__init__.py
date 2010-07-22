@@ -250,6 +250,10 @@ def translate_call(node):
         else:
             s.append("%s instanceof %s" % tuple(map(translate, node.args)))
         return " || ".join(s)
+    elif func == 'len':
+        if len(node.args) != 1:
+            raise TypeError("len() takes exactly one argument (%s given)" % len(args))
+        return "%s.length" % translate(node.args[0])
     args_def = ", ".join(map(translate, node.args))
     return "%(func)s(%(args_def)s)" % {
         "func": func,

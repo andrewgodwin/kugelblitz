@@ -1,0 +1,34 @@
+There are a few things that are non-obvious to translate:
+
+- Class calls - javascript uses new, but we can't tell if calls are to construct
+  classes in the python AST. The solution is a javascript class constructor that
+  can deal with not being called with new.
+  
+   Foo = function (a, b) {
+     if (this == undefined) {
+         return new Foo(a, b);
+     } else {
+         this.a = a;
+         this.b = b;
+     }
+    }
+  
+- Imports - An import of a python builtin module is special, an import of a
+  user's module means it's added to the list of things to import. All objects
+  are placed directly in their namespace based on absolute module path - 
+  for example, a class might be defined as "mygame.model.vector.Vector":
+  
+   var mygame = mygame || {};
+   mygame.model = mygame.model || {};
+   mygame.model.vector = mygame.model.vector || {};
+   
+   mygame.model.vector.Vector = function () { .... }
+   mygame.model.vector.Vector.prototype = { ... }
+  
+  If "from x import y" is used, the generated js code just assigns the
+  fully-qualified variable to a local (technically global) one:
+  
+   from mygame.model.vector import Vector
+   
+   var Vector = mygame.model.vector.Vector;
+   

@@ -279,6 +279,10 @@ class SimpleTests(unittest.TestCase):
             """
         )
     
+    def test_length(self):
+        self.assertCompilesTo('len(x)', 'x.length;')
+        self.assertCompilesTo('len([x, y])', '[x, y].length;')
+    
     def test_compare(self):
         self.assertCompilesTo(
             """
@@ -327,13 +331,13 @@ class SimpleTests(unittest.TestCase):
             """,
             """
             var Vector = function (x, y) {
-                if (y == None) {
+                if (y == null) {
                     if (x instanceof Vector) {
                         this.x = x.x;
                         this.y = x.y;
                     }
                     else {
-                        if (len(x) == 2) {
+                        if (x.length == 2) {
                             this.x = x[0];
                             this.y = x[1];
                         }
