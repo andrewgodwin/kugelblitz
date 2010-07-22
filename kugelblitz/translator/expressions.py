@@ -92,3 +92,44 @@ class CompareTranslator(BaseTranslator):
             "op": self.ops[self.node.ops[0].__class__],
             "comparator": self.sub_translate(self.node.comparators[0]),
         }
+
+    
+class SubscriptTranslator(BaseTranslator):
+    
+    def translate(self):
+        if isinstance(self.node.slice, ast.Index):
+            return "%(value)s[%(index)s]" % {
+                "value": self.sub_translate(self.node.value),
+                "index": self.sub_translate(self.node.slice.value),
+            }
+        elif isinstance(self.node.slice, ast.Slice):
+            # Translate the endpoints
+            if self.node.slice.lower:
+                if isinstance(self.node.slice.lower, ast.Num):
+                    lower = self.node.slice.lower.n
+                else:
+                    raise CompileError("Slice arguments must be numeric.")
+            else:
+                lower = 0
+            if self.node.slice.upper:
+                if isinstance(self.node.slice.upper, ast.Num):
+                    upper = self.node.slice.upper.n
+                else:
+                    raise CompileError("Slice arguments must be numeric.")
+            else:
+                upper = None
+            # Different cases for upper/lower
+            if upper is not None:
+                return "%(value)s.slice(%(lower)s, %(upper)s)" % {
+                    "value": self.sub_translate(self.node.value),
+                    "lower": lower,
+                    "upper": upper,
+                }
+            else:
+                return "%(value)s.slice(%(lower)s)" % {
+                    "value": self.sub_translate(self.node.value),
+                    "lower": lower,
+                }
+            
+        else:
+            raise CompileError("Unknown slice type %s" % type(self.node.slice))

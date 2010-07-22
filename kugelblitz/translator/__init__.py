@@ -1,7 +1,7 @@
 from kugelblitz.translator.base import ast, BaseTranslator
 from kugelblitz.translator.exceptions import CompileError
 from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator, LambdaTranslator, ClassTranslator
-from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator, CompareTranslator
+from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator, CompareTranslator, SubscriptTranslator
 from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator
 from kugelblitz.translator.assignment import AssignTranslator, AugAssignTranslator
 from kugelblitz.translator.control import IfTranslator, IfExprTranslator, RaiseTranslator, ReturnTranslator, CallTranslator
@@ -72,7 +72,7 @@ def get_translator(node):
             ast.Num: NumTranslator,
             ast.Str: None,
             ast.Attribute: wrap_old_translator(translate_attribute),
-            ast.Subscript: wrap_old_translator(translate_subscript),            
+            ast.Subscript: SubscriptTranslator,            
             ast.Name: NameTranslator,
             ast.List: ListTranslator,
             ast.Tuple: ListTranslator,
@@ -89,44 +89,7 @@ def translate_attribute(node):
         "left": translate(node.value),
         "right": node.attr,
     }
-    
-def translate_subscript(node):
-    if isinstance(node.slice, ast.Index):
-        return "%(value)s[%(index)s]" % {
-            "value": translate(node.value),
-            "index": translate(node.slice.value),
-        }
-    elif isinstance(node.slice, ast.Slice):
-        # Translate the endpoints
-        if node.slice.lower:
-            if isinstance(node.slice.lower, ast.Num):
-                lower = node.slice.lower.n
-            else:
-                raise CompileError("Slice arguments must be numeric.")
-        else:
-            lower = 0
-        if node.slice.upper:
-            if isinstance(node.slice.upper, ast.Num):
-                upper = node.slice.upper.n
-            else:
-                raise CompileError("Slice arguments must be numeric.")
-        else:
-            upper = None
-        # Different cases for upper/lower
-        if node.slice.upper is not None:
-            return "%(value)s.slice(%(lower)s, %(upper)s)" % {
-                "value": translate(node.value),
-                "lower": lower,
-                "upper": upper,
-            }
-        else:
-            return "%(value)s.slice(%(lower)s)" % {
-                "value": translate(node.value),
-                "lower": lower,
-            }
-        
-    else:
-        raise CompileError("Unknown slice type %s" % type(node.slice))
+
 
 if __name__ == "__main__":
     import sys
