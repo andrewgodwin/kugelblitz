@@ -4,7 +4,7 @@ from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator,
 from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator, CompareTranslator
 from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator
 from kugelblitz.translator.assignment import AssignTranslator, AugAssignTranslator
-from kugelblitz.translator.control import IfTranslator, IfExprTranslator, RaiseTranslator
+from kugelblitz.translator.control import IfTranslator, IfExprTranslator, RaiseTranslator, ReturnTranslator
 
 def wrap_old_translator(func):
     class WrappedTranslator(BaseTranslator):
@@ -25,7 +25,7 @@ def get_translator(node):
             # stmt
             ast.FunctionDef: FunctionTranslator,
             ast.ClassDef: wrap_old_translator(translate_class),
-            ast.Return: wrap_old_translator(translate_return),
+            ast.Return: ReturnTranslator,
             
             ast.Delete: wrap_old_translator(translate_delete),
             ast.Assign: AssignTranslator,
@@ -153,9 +153,6 @@ def translate_class(node):
         'init_def': init_def,
         'method_defs': ",\n".join(body),
     }
-
-def translate_return(node):
-    return "return %s" % translate(node.value)
 
 def translate_delete(node):
     return ';\n'.join('delete %s' % translate(n) for n in node.targets)

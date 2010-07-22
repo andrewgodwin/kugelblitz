@@ -26,6 +26,9 @@ class IfExprTranslator(BodyTranslator):
         }
 
 class RaiseTranslator(BodyTranslator):
-    
     def translate(self):
         return "throw"
+
+class ReturnTranslator(BodyTranslator):
+    def translate(self):
+        return "return %s" % self.sub_translate(self.node.value)
