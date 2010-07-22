@@ -3,6 +3,7 @@ from kugelblitz.translator.exceptions import CompileError
 from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator
 from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator, CompareTranslator
 from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator
+from kugelblitz.translator.assignment import AssignTranslator
 
 def wrap_old_translator(func):
     class WrappedTranslator(BaseTranslator):
@@ -26,7 +27,7 @@ def get_translator(node):
             ast.Return: wrap_old_translator(translate_return),
             
             ast.Delete: wrap_old_translator(translate_delete),
-            ast.Assign: wrap_old_translator(translate_assign),
+            ast.Assign: AssignTranslator,
             ast.AugAssign: wrap_old_translator(translate_aug_assign),
             
             ast.Print: None,
@@ -156,38 +157,6 @@ def translate_return(node):
 
 def translate_delete(node):
     return ';\n'.join('delete %s' % translate(n) for n in node.targets)
-
-def translate_single_assign(target, value):
-    if isinstance(target, ast.Name):
-        return "var %(target)s = %(value)s" % {
-            'target': translate(target),
-            'value': translate(value),
-        }
-    else:
-        return "%(target)s = %(value)s" % {
-            'target': translate(target),
-            'value': translate(value),
-        }
-    
-def translate_assign(node):
-    # For each target...
-    statements = []
-    for target in node.targets:
-        # Is it a tuple-to-tuple assignment?
-        if isinstance(target, ast.Tuple):
-            # Is the RHS a tuple?
-            if isinstance(node.value, ast.Tuple):
-                # Make sure they're the same length
-                if len(target.elts) != len(node.value.elts):
-                    raise CompileError("Assigning one tuple to another of different length.")
-                for t, v in zip(target.elts, node.value.elts):
-                    statements.append(translate_single_assign(t, v))
-            # No? Raise an error for now.
-            else:
-                raise CompileError("Assigning a non-tuple to a tuple.")
-        else:
-            statements.append(translate_single_assign(target, node.value))
-    return ";\n".join(statements)
 
 def translate_aug_assign(node):
     return '%(target)s %(op)s= %(value)s' % {

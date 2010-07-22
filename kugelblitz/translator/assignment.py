@@ -1,0 +1,36 @@
+from kugelblitz.translator.base import BaseTranslator, ast
+from kugelblitz.translator.exceptions import CompileError
+
+
+class AssignTranslator(BaseTranslator):
+    
+    def translate_single_assign(self, target, value):
+        if isinstance(target, ast.Name):
+            return "var %(target)s = %(value)s" % {
+                'target': self.sub_translate(target),
+                'value': self.sub_translate(value),
+            }
+        else:
+            return "%(target)s = %(value)s" % {
+                'target': self.sub_translate(target),
+                'value': self.sub_translate(value),
+            }
+
+    def translate(self):
+        statements = []
+        for target in self.node.targets:
+            # Is it a tuple-to-tuple assignment?
+            if isinstance(target, ast.Tuple):
+                # Is the RHS a tuple?
+                if isinstance(self.node.value, ast.Tuple):
+                    # Make sure they're the same length
+                    if len(target.elts) != len(self.node.value.elts):
+                        raise CompileError("Assigning one tuple to another of different length.")
+                    for t, v in zip(target.elts, self.node.value.elts):
+                        statements.append(self.translate_single_assign(t, v))
+                # No? Raise an error for now.
+                else:
+                    raise CompileError("Assigning a non-tuple to a tuple.")
+            else:
+                statements.append(self.translate_single_assign(target, self.node.value))
+        return ";\n".join(statements)
