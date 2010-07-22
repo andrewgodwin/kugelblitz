@@ -28,6 +28,7 @@ def translate(tree, **kwargs):
         ast.Subscript: translate_subscript,
         ast.Raise: translate_raise,
         ast.List: translate_list,
+        ast.Import: lambda n: "// import...",
         ast.Expr: lambda n: translate(n.value),
         
         ast.And: lambda _: '&&',
@@ -281,3 +282,7 @@ def translate_class(node):
         'init_def': init_def,
         'method_defs': ",\n".join(body),
     }
+
+if __name__ == "__main__":
+    import sys
+    print translate(ast.parse(sys.stdin.read()+"\n"))
