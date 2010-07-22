@@ -1,13 +1,102 @@
-try:
-    import ast
-except ImportError:
-    from kugelblitz.lib import ast
-    
-from kugelblitz.translator.toplevel import ModuleTranslator
-import kugelblitz.translator.expressions
+from kugelblitz.translator.base import ast
+from kugelblitz.translator.exceptions import CompileError
+from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator
+from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator
+from kugelblitz.translator.values import NumTranslator
 
-class CompileError(RuntimeError):
-    pass
+def get_translator(node):
+    try:
+        return {
+            # mod
+            ast.Module: ModuleTranslator,
+            ast.Expression: None,
+            
+            # stmt
+            ast.FunctionDef: FunctionTranslator,
+            ast.ClassDef: None,
+            ast.Return: None,
+            
+            ast.Delete: None,
+            ast.Assign: None,
+            ast.AugAssign: None,
+            
+            ast.Print: None,
+            
+            ast.For: None,
+            ast.While: None,
+            ast.If: None,
+            ast.With: None,
+            
+            ast.Raise: None,
+            ast.TryExcept: None,
+            ast.TryFinally: None,
+            ast.Assert: None,
+            
+            ast.Import: None,
+            ast.ImportFrom: None,
+            
+            ast.Exec: None,
+            
+            ast.Global: None,
+            ast.Expr: ExprTranslator,
+            ast.Pass: None,
+            ast.Break: None,
+            ast.Continue: None,
+            
+            # expr
+            ast.BoolOp: None,
+            ast.BinOp: BinOpTranslator,
+            ast.UnaryOp: None,
+            ast.Lambda: None,
+            ast.IfExp: None,
+            ast.Dict: None,
+            #ast.Set: None, Not in 2.6
+            ast.ListComp: None,
+            #ast.SetComp: None, Not in 2.6
+            #ast.DictComp: None, Not in 2.6
+            ast.GeneratorExp: None,
+            ast.Yield: None,
+            ast.Compare: None,
+            ast.Call: None,
+            ast.Repr: None,
+            ast.Num: NumTranslator,
+            ast.Str: None,
+            
+            ast.Attribute: translate_attribute,
+            ast.Subscript: translate_subscript,
+            ast.Name: translate_name,
+            ast.List: translate_list,
+            ast.Tuple: translate_tuple,
+            
+            # slice handled in translate_subscript
+            
+            # boolop
+            ast.And: lambda _: '&&',
+            ast.Or: lambda _: '||',
+            
+            # operator
+            
+            
+            # unary op
+            ast.Invert: lambda _: '~',
+            ast.Not: lambda _: '!',
+            ast.UAdd: lambda _: '+',
+            ast.USub: lambda _: '-',
+            
+            # cmpop
+            ast.Eq: lambda _: '==',
+            ast.NotEq: lambda _: '!=',
+            ast.Lt: lambda _: '<',
+            ast.LtE: lambda _: '<=',
+            ast.Gt: lambda _: '>',
+            ast.GtE: lambda _: '>=',
+            ast.Is: None,
+            ast.IsNot: None,
+            ast.In: None,
+            ast.NotIn: None,
+        }[node.__class__](node)
+    except TypeError:
+        raise CompileError("No translator available for %s." % node.__class__.__name__)
 
 def translate(tree, **kwargs):
     return {
@@ -347,4 +436,4 @@ def translate_class(node):
 
 if __name__ == "__main__":
     import sys
-    print translate(ast.parse(sys.stdin.read()+"\n"))
+    print get_translator(ast.parse(sys.stdin.read()+"\n")).translate()
