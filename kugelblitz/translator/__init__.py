@@ -1,7 +1,7 @@
 from kugelblitz.translator.base import ast, BaseTranslator
 from kugelblitz.translator.exceptions import CompileError
 from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator
-from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator
+from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator, CompareTranslator
 from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator
 
 def wrap_old_translator(func):
@@ -65,7 +65,7 @@ def get_translator(node):
             #ast.DictComp: None, Not in 2.6
             ast.GeneratorExp: None,
             ast.Yield: None,
-            ast.Compare: wrap_old_translator(translate_compare),
+            ast.Compare: CompareTranslator,
             ast.Call: wrap_old_translator(translate_call),
             ast.Repr: None,
             ast.Num: NumTranslator,
@@ -84,16 +84,6 @@ def get_translator(node):
             ast.Tuple: ListTranslator,
             
             # cmpop
-            ast.Eq: lambda _: '==',
-            ast.NotEq: lambda _: '!=',
-            ast.Lt: lambda _: '<',
-            ast.LtE: lambda _: '<=',
-            ast.Gt: lambda _: '>',
-            ast.GtE: lambda _: '>=',
-            ast.Is: None,
-            ast.IsNot: None,
-            ast.In: None,
-            ast.NotIn: None,
         }[node.__class__](node)
     except TypeError:
         raise CompileError("No translator available for %s." % node.__class__.__name__)
