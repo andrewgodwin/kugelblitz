@@ -97,16 +97,16 @@ def translate(tree, **kwargs):
     return {
         # mod
         ast.Module: translate_module,
-        ast.Expression: None,
+        ast.Expression: translate_module,
         
         # stmt
         ast.FunctionDef: translate_function,
         ast.ClassDef: translate_class,
         ast.Return: translate_return,
         
-        ast.Delete: None,
+        ast.Delete: translate_delete,
         ast.Assign: translate_assign,
-        ast.AugAssign: None,
+        ast.AugAssign: translate_aug_assign,
         
         ast.Print: None,
         
@@ -138,10 +138,10 @@ def translate(tree, **kwargs):
         ast.Lambda: translate_lambda,
         ast.IfExp: translate_if_exp,
         ast.Dict: None,
-        ast.Set: None,
+        # ast.Set: None,
         ast.ListComp: None,
-        ast.SetComp: None,
-        ast.DictComp: None,
+        # ast.SetComp: None,
+        # ast.DictComp: None,
         ast.GeneratorExp: None,
         ast.Yield: None,
         ast.Compare: translate_compare,
@@ -226,8 +226,86 @@ def translate_function(node, instance_method=False):
             "name": node.name,
         }
 
+def translate_class(node):
+    
+    # Is there an __init__?
+    functions = {}
+    assigns = {}
+    classes = {}
+    for item in node.body:
+        if isinstance(item, ast.FunctionDef):
+            functions[item.name] = item
+        elif isinstance(item, ast.Assign):
+            assert len(item.targets) == 1, "You can only assign to a single item."
+            assert isinstance(item.targets[0], ast.Name), "You can only assign to simple names in classes"
+            assigns[item.targets[0].id] = item.value
+
+    # Make constructor def
+    if "__init__" in functions:
+        init_def = translate_function(functions['__init__'], instance_method=True)
+    else:
+        init_def = "function () {}"
+    
+    # Make other defs
+    body = []
+    for aname, anode in sorted(assigns.items()):
+        body.append("'%s': %s" % (
+            aname,
+            translate(anode),
+        ))
+    
+    # Make method defs
+    for fname, fnode in sorted(functions.items()):
+        if fname != "__init__":
+            body.append("'%s': %s" % (
+                fname,
+                translate_function(fnode, instance_method=True),
+            ))
+    
+    return "var %(name)s = %(init_def)s;\n%(name)s.prototype = { %(method_defs)s }" % {
+        'name': node.name,
+        'init_def': init_def,
+        'method_defs': ",\n".join(body),
+    }
+
 def translate_return(node):
     return "return %s" % translate(node.value)
+
+def translate_delete(node):
+    return ';\n'.join('delete %s' % translate(n) for n in node.targets)
+
+def translate_assign(node):
+    # For each target...
+    statements = []
+    for target in node.targets:
+        # Is it a tuple-to-tuple assignment?
+        if isinstance(target, ast.Tuple):
+            # Is the RHS a tuple?
+            if isinstance(node.value, ast.Tuple):
+                # Make sure they're the same length
+                if len(target.elts) != len(node.value.elts):
+                    raise CompileError("Assigning one tuple to another of different length.")
+                for t, v in zip(target.elts, node.value.elts):
+                    statements.append("%(target)s = %(value)s" % {
+                        'value': translate(v),
+                        'target': translate(t),
+                    })
+            # No? Raise an error for now.
+            else:
+                raise CompileError("Assigning a non-tuple to a tuple.")
+        else:
+            statements.append("%(target)s = %(value)s" % {
+                'value': translate(node.value),
+                'target': translate(target),
+            })
+    return ";\n".join(statements)
+
+def translate_aug_assign(node):
+    return '%(target)s %(op)s= %(value)s' % {
+        'target': translate(node.target),
+        'op': translate(node.op),
+        'value': translate(node.value),
+    }
 
 def translate_lambda(node):
     return "function(%(args_def)s) {\nreturn %(body_def)s\n}" % {
@@ -293,32 +371,6 @@ def translate_attribute(node):
         "right": node.attr,
     }
 
-def translate_assign(node):
-    # For each target...
-    statements = []
-    for target in node.targets:
-        # Is it a tuple-to-tuple assignment?
-        if isinstance(target, ast.Tuple):
-            # Is the RHS a tuple?
-            if isinstance(node.value, ast.Tuple):
-                # Make sure they're the same length
-                if len(target.elts) != len(node.value.elts):
-                    raise CompileError("Assigning one tuple to another of different length.")
-                for t, v in zip(target.elts, node.value.elts):
-                    statements.append("%(target)s = %(value)s" % {
-                        'value': translate(v),
-                        'target': translate(t),
-                    })
-            # No? Raise an error for now.
-            else:
-                raise CompileError("Assigning a non-tuple to a tuple.")
-        else:
-            statements.append("%(target)s = %(value)s" % {
-                'value': translate(node.value),
-                'target': translate(target),
-            })
-    return ";\n".join(statements)
-
 def translate_num(node):
     return str(node.n)
 
@@ -327,10 +379,20 @@ def translate_call(node):
     if func == 'isinstance':
         if len(node.args) != 2:
             raise TypeError("isinstance expected 2 arguments, got %s" % len(args))
-        # TODO
-        #if isinstance(node.args[1], (ast.List, ast.Tuple)):
-            
-        return "%s instanceof %s" % tuple(map(translate, node.args))
+        s = []
+        if isinstance(node.args[1], (ast.List, ast.Tuple)):
+            for n in node.args[1].elts:
+                s.append("%s instanceof %s" % (
+                    translate(node.args[0]),
+                    translate(n),
+                ))
+        else:
+            s.append("%s instanceof %s" % tuple(map(translate, node.args)))
+        return " || ".join(s)
+    elif func == 'len':
+        if len(node.args) != 1:
+            raise TypeError("len() takes exactly one argument (%s given)" % len(args))
+        return "%s.length" % translate(node.args[0])
     args_def = ", ".join(map(translate, node.args))
     return "%(func)s(%(args_def)s)" % {
         "func": func,
@@ -386,48 +448,6 @@ def translate_subscript(node):
 
 def translate_raise(node):
     return "throw"
-
-def translate_class(node):
-    
-    # Is there an __init__?
-    functions = {}
-    assigns = {}
-    classes = {}
-    for item in node.body:
-        if isinstance(item, ast.FunctionDef):
-            functions[item.name] = item
-        elif isinstance(item, ast.Assign):
-            assert len(item.targets) == 1, "You can only assign to a single item."
-            assert isinstance(item.targets[0], ast.Name), "You can only assign to simple names in classes"
-            assigns[item.targets[0].id] = item.value
-
-    # Make constructor def
-    if "__init__" in functions:
-        init_def = translate_function(functions['__init__'], instance_method=True)
-    else:
-        init_def = "function () {}"
-    
-    # Make other defs
-    body = []
-    for aname, anode in sorted(assigns.items()):
-        body.append("'%s': %s" % (
-            aname,
-            translate(anode),
-        ))
-    
-    # Make method defs
-    for fname, fnode in sorted(functions.items()):
-        if fname != "__init__":
-            body.append("'%s': %s" % (
-                fname,
-                translate_function(fnode, instance_method=True),
-            ))
-    
-    return "var %(name)s = %(init_def)s;\n%(name)s.prototype = { %(method_defs)s }" % {
-        'name': node.name,
-        'init_def': init_def,
-        'method_defs': ",\n".join(body),
-    }
 
 if __name__ == "__main__":
     import sys

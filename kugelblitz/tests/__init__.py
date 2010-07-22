@@ -262,22 +262,26 @@ class SimpleTests(unittest.TestCase):
             x instanceof Foo;
             """
         )
-        # self.assertCompilesTo(
-        #     """
-        #     isinstance(x, (Foo, Bar))
-        #     """,
-        #     """
-        #     x instanceof Foo || x instanceof Bar;
-        #     """
-        # )
-        # self.assertCompilesTo(
-        #     """
-        #     isinstance(x, [Foo, Bar])
-        #     """,
-        #     """
-        #     x instanceof Foo || x instanceof Bar;
-        #     """
-        # )
+        self.assertCompilesTo(
+            """
+            isinstance(x, (Foo, Bar))
+            """,
+            """
+            x instanceof Foo || x instanceof Bar;
+            """
+        )
+        self.assertCompilesTo(
+            """
+            isinstance(x, [Foo, Bar])
+            """,
+            """
+            x instanceof Foo || x instanceof Bar;
+            """
+        )
+    
+    def test_length(self):
+        self.assertCompilesTo('len(x)', 'x.length;')
+        self.assertCompilesTo('len([x, y])', '[x, y].length;')
     
     def test_compare(self):
         self.assertCompilesTo(
@@ -300,7 +304,14 @@ class SimpleTests(unittest.TestCase):
             y = x.slice(1, 2);
             """,
         )
-        
+    
+    def test_delete(self):
+        self.assertCompilesTo('del x', 'delete x;')
+        self.assertCompilesTo('del x, y', 'delete x; delete y;')
+    
+    def test_aug_assign(self):
+        self.assertCompilesTo('x += 1', 'x += 1;')
+    
     def test_complex_class(self):
         self.assertCompilesTo(
             """
@@ -327,13 +338,13 @@ class SimpleTests(unittest.TestCase):
             """,
             """
             var Vector = function (x, y) {
-                if (y == None) {
-                    if (isinstance(x, Vector)) {
+                if (y == null) {
+                    if (x instanceof Vector) {
                         this.x = x.x;
                         this.y = x.y;
                     }
                     else {
-                        if (len(x) == 2) {
+                        if (x.length == 2) {
                             this.x = x[0];
                             this.y = x[1];
                         }
