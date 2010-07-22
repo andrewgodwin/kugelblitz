@@ -262,22 +262,22 @@ class SimpleTests(unittest.TestCase):
             x instanceof Foo;
             """
         )
-        # self.assertCompilesTo(
-        #     """
-        #     isinstance(x, (Foo, Bar))
-        #     """,
-        #     """
-        #     x instanceof Foo || x instanceof Bar;
-        #     """
-        # )
-        # self.assertCompilesTo(
-        #     """
-        #     isinstance(x, [Foo, Bar])
-        #     """,
-        #     """
-        #     x instanceof Foo || x instanceof Bar;
-        #     """
-        # )
+        self.assertCompilesTo(
+            """
+            isinstance(x, (Foo, Bar))
+            """,
+            """
+            x instanceof Foo || x instanceof Bar;
+            """
+        )
+        self.assertCompilesTo(
+            """
+            isinstance(x, [Foo, Bar])
+            """,
+            """
+            x instanceof Foo || x instanceof Bar;
+            """
+        )
     
     def test_compare(self):
         self.assertCompilesTo(
@@ -328,7 +328,7 @@ class SimpleTests(unittest.TestCase):
             """
             var Vector = function (x, y) {
                 if (y == None) {
-                    if (isinstance(x, Vector)) {
+                    if (x instanceof Vector) {
                         this.x = x.x;
                         this.y = x.y;
                     }

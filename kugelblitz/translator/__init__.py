@@ -240,10 +240,16 @@ def translate_call(node):
     if func == 'isinstance':
         if len(node.args) != 2:
             raise TypeError("isinstance expected 2 arguments, got %s" % len(args))
-        # TODO
-        #if isinstance(node.args[1], (ast.List, ast.Tuple)):
-            
-        return "%s instanceof %s" % tuple(map(translate, node.args))
+        s = []
+        if isinstance(node.args[1], (ast.List, ast.Tuple)):
+            for n in node.args[1].elts:
+                s.append("%s instanceof %s" % (
+                    translate(node.args[0]),
+                    translate(n),
+                ))
+        else:
+            s.append("%s instanceof %s" % tuple(map(translate, node.args)))
+        return " || ".join(s)
     args_def = ", ".join(map(translate, node.args))
     return "%(func)s(%(args_def)s)" % {
         "func": func,
