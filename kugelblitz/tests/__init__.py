@@ -304,7 +304,11 @@ class SimpleTests(unittest.TestCase):
             y = x.slice(1, 2);
             """,
         )
-        
+    
+    def test_delete(self):
+        self.assertCompilesTo('del x', 'delete x;')
+        self.assertCompilesTo('del x, y', 'delete x; delete y;')
+    
     def test_complex_class(self):
         self.assertCompilesTo(
             """

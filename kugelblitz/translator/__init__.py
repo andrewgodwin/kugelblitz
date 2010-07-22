@@ -10,14 +10,14 @@ def translate(tree, **kwargs):
     return {
         # mod
         ast.Module: translate_module,
-        ast.Expression: None,
+        ast.Expression: translate_module,
         
         # stmt
         ast.FunctionDef: translate_function,
         ast.ClassDef: translate_class,
         ast.Return: translate_return,
         
-        ast.Delete: None,
+        ast.Delete: translate_delete,
         ast.Assign: translate_assign,
         ast.AugAssign: None,
         
@@ -138,6 +138,51 @@ def translate_function(node, instance_method=False):
             "body_def": translate_body(node.body),
             "name": node.name,
         }
+
+def translate_class(node):
+    
+    # Is there an __init__?
+    functions = {}
+    assigns = {}
+    classes = {}
+    for item in node.body:
+        if isinstance(item, ast.FunctionDef):
+            functions[item.name] = item
+        elif isinstance(item, ast.Assign):
+            assert len(item.targets) == 1, "You can only assign to a single item."
+            assert isinstance(item.targets[0], ast.Name), "You can only assign to simple names in classes"
+            assigns[item.targets[0].id] = item.value
+
+    # Make constructor def
+    if "__init__" in functions:
+        init_def = translate_function(functions['__init__'], instance_method=True)
+    else:
+        init_def = "function () {}"
+    
+    # Make other defs
+    body = []
+    for aname, anode in sorted(assigns.items()):
+        body.append("'%s': %s" % (
+            aname,
+            translate(anode),
+        ))
+    
+    # Make method defs
+    for fname, fnode in sorted(functions.items()):
+        if fname != "__init__":
+            body.append("'%s': %s" % (
+                fname,
+                translate_function(fnode, instance_method=True),
+            ))
+    
+    return "var %(name)s = %(init_def)s;\n%(name)s.prototype = { %(method_defs)s }" % {
+        'name': node.name,
+        'init_def': init_def,
+        'method_defs': ",\n".join(body),
+    }
+
+def translate_delete(node):
+    return ';\n'.join('delete %s' % translate(n) for n in node.targets)
 
 def translate_return(node):
     return "return %s" % translate(node.value)
@@ -309,48 +354,6 @@ def translate_subscript(node):
 
 def translate_raise(node):
     return "throw"
-
-def translate_class(node):
-    
-    # Is there an __init__?
-    functions = {}
-    assigns = {}
-    classes = {}
-    for item in node.body:
-        if isinstance(item, ast.FunctionDef):
-            functions[item.name] = item
-        elif isinstance(item, ast.Assign):
-            assert len(item.targets) == 1, "You can only assign to a single item."
-            assert isinstance(item.targets[0], ast.Name), "You can only assign to simple names in classes"
-            assigns[item.targets[0].id] = item.value
-
-    # Make constructor def
-    if "__init__" in functions:
-        init_def = translate_function(functions['__init__'], instance_method=True)
-    else:
-        init_def = "function () {}"
-    
-    # Make other defs
-    body = []
-    for aname, anode in sorted(assigns.items()):
-        body.append("'%s': %s" % (
-            aname,
-            translate(anode),
-        ))
-    
-    # Make method defs
-    for fname, fnode in sorted(functions.items()):
-        if fname != "__init__":
-            body.append("'%s': %s" % (
-                fname,
-                translate_function(fnode, instance_method=True),
-            ))
-    
-    return "var %(name)s = %(init_def)s;\n%(name)s.prototype = { %(method_defs)s }" % {
-        'name': node.name,
-        'init_def': init_def,
-        'method_defs': ",\n".join(body),
-    }
 
 if __name__ == "__main__":
     import sys
