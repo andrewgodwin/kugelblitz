@@ -332,7 +332,7 @@ class SimpleTests(unittest.TestCase):
                 pass
             """,
             """
-            if (x) { };
+            if (x) { }
             """
         )
     
