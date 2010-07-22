@@ -197,7 +197,7 @@ def translate_aug_assign(node):
     }
 
 def translate_lambda(node):
-    return "function(%(args_def)s) {\nreturn %(body_def)s\n}" % {
+    return "function (%(args_def)s) {\nreturn %(body_def)s\n}" % {
         'args_def': ", ".join([arg.id for arg in node.args.args]),
         'body_def': translate_body([node.body]),
     }
