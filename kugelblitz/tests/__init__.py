@@ -309,6 +309,9 @@ class SimpleTests(unittest.TestCase):
         self.assertCompilesTo('del x', 'delete x;')
         self.assertCompilesTo('del x, y', 'delete x; delete y;')
     
+    def test_aug_assign(self):
+        self.assertCompilesTo('x += 1', 'x += 1;')
+    
     def test_complex_class(self):
         self.assertCompilesTo(
             """

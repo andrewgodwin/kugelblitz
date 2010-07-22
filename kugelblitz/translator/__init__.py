@@ -19,7 +19,7 @@ def translate(tree, **kwargs):
         
         ast.Delete: translate_delete,
         ast.Assign: translate_assign,
-        ast.AugAssign: None,
+        ast.AugAssign: translate_aug_assign,
         
         ast.Print: None,
         
@@ -181,11 +181,44 @@ def translate_class(node):
         'method_defs': ",\n".join(body),
     }
 
+def translate_return(node):
+    return "return %s" % translate(node.value)
+
 def translate_delete(node):
     return ';\n'.join('delete %s' % translate(n) for n in node.targets)
 
-def translate_return(node):
-    return "return %s" % translate(node.value)
+def translate_assign(node):
+    # For each target...
+    statements = []
+    for target in node.targets:
+        # Is it a tuple-to-tuple assignment?
+        if isinstance(target, ast.Tuple):
+            # Is the RHS a tuple?
+            if isinstance(node.value, ast.Tuple):
+                # Make sure they're the same length
+                if len(target.elts) != len(node.value.elts):
+                    raise CompileError("Assigning one tuple to another of different length.")
+                for t, v in zip(target.elts, node.value.elts):
+                    statements.append("%(target)s = %(value)s" % {
+                        'value': translate(v),
+                        'target': translate(t),
+                    })
+            # No? Raise an error for now.
+            else:
+                raise CompileError("Assigning a non-tuple to a tuple.")
+        else:
+            statements.append("%(target)s = %(value)s" % {
+                'value': translate(node.value),
+                'target': translate(target),
+            })
+    return ";\n".join(statements)
+
+def translate_aug_assign(node):
+    return '%(target)s %(op)s= %(value)s' % {
+        'target': translate(node.target),
+        'op': translate(node.op),
+        'value': translate(node.value),
+    }
 
 def translate_lambda(node):
     return "function(%(args_def)s) {\nreturn %(body_def)s\n}" % {
@@ -250,32 +283,6 @@ def translate_attribute(node):
         "left": translate(node.value),
         "right": node.attr,
     }
-
-def translate_assign(node):
-    # For each target...
-    statements = []
-    for target in node.targets:
-        # Is it a tuple-to-tuple assignment?
-        if isinstance(target, ast.Tuple):
-            # Is the RHS a tuple?
-            if isinstance(node.value, ast.Tuple):
-                # Make sure they're the same length
-                if len(target.elts) != len(node.value.elts):
-                    raise CompileError("Assigning one tuple to another of different length.")
-                for t, v in zip(target.elts, node.value.elts):
-                    statements.append("%(target)s = %(value)s" % {
-                        'value': translate(v),
-                        'target': translate(t),
-                    })
-            # No? Raise an error for now.
-            else:
-                raise CompileError("Assigning a non-tuple to a tuple.")
-        else:
-            statements.append("%(target)s = %(value)s" % {
-                'value': translate(node.value),
-                'target': translate(target),
-            })
-    return ";\n".join(statements)
 
 def translate_num(node):
     return str(node.n)
