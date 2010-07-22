@@ -1,6 +1,6 @@
 from kugelblitz.translator.base import ast, BaseTranslator
 from kugelblitz.translator.exceptions import CompileError
-from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator, LambdaTranslator
+from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator, LambdaTranslator, ClassTranslator
 from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator, CompareTranslator
 from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator
 from kugelblitz.translator.assignment import AssignTranslator, AugAssignTranslator
@@ -24,7 +24,7 @@ def get_translator(node):
             
             # stmt
             ast.FunctionDef: FunctionTranslator,
-            ast.ClassDef: wrap_old_translator(translate_class),
+            ast.ClassDef: ClassTranslator,
             ast.Return: ReturnTranslator,
             
             ast.Delete: wrap_old_translator(translate_delete),
@@ -111,48 +111,6 @@ def translate_function(node, instance_method=False):
             "body_def": translate_body(node.body),
             "name": node.name,
         }
-
-def translate_class(node):
-    
-    # Is there an __init__?
-    functions = {}
-    assigns = {}
-    classes = {}
-    for item in node.body:
-        if isinstance(item, ast.FunctionDef):
-            functions[item.name] = item
-        elif isinstance(item, ast.Assign):
-            assert len(item.targets) == 1, "You can only assign to a single item."
-            assert isinstance(item.targets[0], ast.Name), "You can only assign to simple names in classes"
-            assigns[item.targets[0].id] = item.value
-
-    # Make constructor def
-    if "__init__" in functions:
-        init_def = translate_function(functions['__init__'], instance_method=True)
-    else:
-        init_def = "function () {}"
-    
-    # Make other defs
-    body = []
-    for aname, anode in sorted(assigns.items()):
-        body.append("'%s': %s" % (
-            aname,
-            translate(anode),
-        ))
-    
-    # Make method defs
-    for fname, fnode in sorted(functions.items()):
-        if fname != "__init__":
-            body.append("'%s': %s" % (
-                fname,
-                translate_function(fnode, instance_method=True),
-            ))
-    
-    return "var %(name)s = %(init_def)s;\n%(name)s.prototype = { %(method_defs)s }" % {
-        'name': node.name,
-        'init_def': init_def,
-        'method_defs': ",\n".join(body),
-    }
 
 def translate_delete(node):
     return ';\n'.join('delete %s' % translate(n) for n in node.targets)
