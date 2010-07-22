@@ -21,8 +21,10 @@ def translate(tree, **kwargs):
         ast.BinOp: translate_bin_op,
         ast.UnaryOp: translate_unary_op,
         ast.Lambda: translate_lambda,
-        
+        ast.If: translate_if,
+        ast.IfExp: translate_if_exp,
         ast.Expr: lambda n: translate(n.value),
+        
         ast.And: lambda _: '&&',
         ast.Or: lambda _: '||',
         ast.Add: lambda _: '+',
@@ -42,8 +44,17 @@ def translate(tree, **kwargs):
         ast.USub: lambda _: '-',
     }[tree.__class__](tree, **kwargs)
 
+def translate_body(body, line_separator='\n'):
+    s = []
+    for node in body:
+        if isinstance(node, (ast.If,)):
+            s.append(translate(node))
+        else:
+            s.append('%s;' % translate(node))
+    return ''.join(s)
+
 def translate_module(node):
-    return "\n\n".join(map(translate, node.body))
+    return translate_body(node.body, line_separator='\n\n')
 
 def translate_function(node, instance_method=False):
     """
@@ -51,28 +62,46 @@ def translate_function(node, instance_method=False):
     an instance method.
     """
     # Generate argument definition
-    body_def = "\n".join(map(translate, node.body))
     if instance_method:
         args_def = ", ".join([arg.id for arg in node.args.args[1:]])
         return "function (%(args_def)s) { %(body_def)s }" % {
             "args_def": args_def,
-            "body_def": body_def,
+            "body_def": translate_body(node.body),
         }
     else:
         args_def = ", ".join([arg.id for arg in node.args.args])
-        return "function %(name)s (%(args_def)s) { %(body_def)s }" % {
+        return "var %(name)s = function (%(args_def)s) { %(body_def)s }" % {
             "args_def": args_def,
-            "body_def": body_def,
+            "body_def": translate_body(node.body),
             "name": node.name,
         }
 
 def translate_return(node):
-    return "return %s;" % translate(node.value)
+    return "return %s" % translate(node.value)
 
 def translate_lambda(node):
-    return "function(%(args_def)s) {\nreturn %(body_def)s;\n}" % {
+    return "function(%(args_def)s) {\nreturn %(body_def)s\n}" % {
         'args_def': ", ".join([arg.id for arg in node.args.args]),
-        'body_def': translate(node.body),
+        'body_def': translate_body([node.body]),
+    }
+
+def translate_if(node):
+    s = ["if (%(test_def)s) { %(body_def)s }" % {
+        'test_def': translate(node.test),
+        'body_def': translate_body(node.body),
+    }]
+    if node.orelse:
+        s.append("else { %(orelse_def)s }" % {
+            's': s,
+            'orelse_def': translate_body(node.orelse),
+        })
+    return '\n'.join(s)
+
+def translate_if_exp(node):
+    return '%(test)s ? %(body)s : %(orelse)s' % {
+        'test': translate(node.test),
+        'body': translate(node.body),
+        'orelse': translate(node.orelse),
     }
 
 def translate_name(node):
@@ -85,12 +114,20 @@ def translate_tuple(node):
     return "?tuple?"
     
 def translate_bool_op(node):
-    return " ".join(map(translate, [node.values[0], node.op, node.values[1]]))
+    return "(%(left)s %(op)s %(right)s)" % {
+        'left': translate(node.values[0]),
+        'op': translate(node.op),
+        'right': translate(node.values[1]),
+    }
 
 def translate_bin_op(node):
     if isinstance(node.op, ast.Pow):
         return "Math.pow(%s, %s)" % tuple(map(translate, [node.left, node.right]))
-    return " ".join(map(translate, [node.left, node.op, node.right]))
+    return "(%(left)s %(op)s %(right)s)" % {
+        'left': translate(node.left),
+        'op': translate(node.op),
+        'right': translate(node.right),
+    }
 
 def translate_unary_op(node):
     return "".join(map(translate, [node.op, node.operand]))
@@ -166,8 +203,7 @@ def translate_class(node):
                 translate_function(fnode, instance_method=True),
             ))
     
-    
-    return "%(name)s = %(init_def)s;\n%(name)s.prototype = { %(method_defs)s }" % {
+    return "var %(name)s = %(init_def)s;\n%(name)s.prototype = { %(method_defs)s }" % {
         'name': node.name,
         'init_def': init_def,
         'method_defs': ",\n".join(body),
