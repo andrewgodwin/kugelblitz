@@ -263,6 +263,18 @@ class SimpleTests(unittest.TestCase):
             """,
         )
         
+    def test_slice(self):
+        self.assertCompilesTo(
+            """
+            x = [1,2,3]
+            y = x[1:2]
+            """,
+            """
+            x = [1, 2, 3];
+            y = x.slice(1, 2);
+            """,
+        )
+        
     def test_complex_class(self):
         self.assertCompilesTo(
             """

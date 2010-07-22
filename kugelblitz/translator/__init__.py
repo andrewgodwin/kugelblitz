@@ -27,6 +27,7 @@ def translate(tree, **kwargs):
         ast.IfExp: translate_if_exp,
         ast.Subscript: translate_subscript,
         ast.Raise: translate_raise,
+        ast.List: translate_list,
         ast.Expr: lambda n: translate(n.value),
         
         ast.And: lambda _: '&&',
@@ -123,7 +124,10 @@ def translate_name(node):
         return node.id
     
 def translate_tuple(node):
-    return "?tuple?"
+    return translate_list(node)
+
+def translate_list(node):
+    return "[%s]" % ", ".join(map(translate, node.elts))
     
 def translate_bool_op(node):
     return "(%(left)s %(op)s %(right)s)" % {
@@ -201,6 +205,35 @@ def translate_subscript(node):
             "value": translate(node.value),
             "index": translate(node.slice.value),
         }
+    elif isinstance(node.slice, ast.Slice):
+        # Translate the endpoints
+        if node.slice.lower:
+            if isinstance(node.slice.lower, ast.Num):
+                lower = node.slice.lower.n
+            else:
+                raise CompileError("Slice arguments must be numeric.")
+        else:
+            lower = 0
+        if node.slice.upper:
+            if isinstance(node.slice.upper, ast.Num):
+                upper = node.slice.upper.n
+            else:
+                raise CompileError("Slice arguments must be numeric.")
+        else:
+            upper = None
+        # Different cases for upper/lower
+        if node.slice.upper is not None:
+            return "%(value)s.slice(%(lower)s, %(upper)s)" % {
+                "value": translate(node.value),
+                "lower": lower,
+                "upper": upper,
+            }
+        else:
+            return "%(value)s.slice(%(lower)s)" % {
+                "value": translate(node.value),
+                "lower": lower,
+            }
+        
     else:
         raise CompileError("Unknown slice type %s" % type(node.slice))
 
