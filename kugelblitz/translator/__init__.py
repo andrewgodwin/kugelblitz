@@ -33,7 +33,7 @@ def translate(tree, **kwargs):
         ast.TryFinally: None,
         ast.Assert: None,
         
-        ast.Import: ast.Import: lambda n: "// import...",
+        ast.Import: lambda n: "// import...",
         ast.ImportFrom: None,
         
         ast.Exec: None,
