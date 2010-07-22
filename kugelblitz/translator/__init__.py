@@ -68,7 +68,7 @@ def get_translator(node):
             ast.Compare: wrap_old_translator(translate_compare),
             ast.Call: wrap_old_translator(translate_call),
             ast.Repr: None,
-            ast.Num: wrap_old_translator(NumTranslator),
+            ast.Num: NumTranslator,
             ast.Str: None,
         
             ast.Attribute: wrap_old_translator(translate_attribute),
@@ -98,6 +98,34 @@ def get_translator(node):
     except TypeError:
         raise CompileError("No translator available for %s." % node.__class__.__name__)
 
+def translate_body(body, line_separator='\n'):
+    s = []
+    for node in body:
+        if isinstance(node, (ast.If,)):
+            s.append(translate(node))
+        else:
+            s.append('%s;' % translate(node))
+    return '\n'.join(s)
+
+def translate_function(node, instance_method=False):
+    """
+    Translates a function. If self_var is not none, it behaves as
+    an instance method.
+    """
+    # Generate argument definition
+    if instance_method:
+        args_def = ", ".join([arg.id for arg in node.args.args[1:]])
+        return "function (%(args_def)s) { %(body_def)s }" % {
+            "args_def": args_def,
+            "body_def": translate_body(node.body),
+        }
+    else:
+        args_def = ", ".join([arg.id for arg in node.args.args])
+        return "var %(name)s = function (%(args_def)s) { %(body_def)s }" % {
+            "args_def": args_def,
+            "body_def": translate_body(node.body),
+            "name": node.name,
+        }
 
 def translate_class(node):
     
