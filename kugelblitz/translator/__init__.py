@@ -3,6 +3,9 @@ try:
 except ImportError:
     from kugelblitz.lib import ast
 
+class CompileError(RuntimeError):
+    pass
+
 def translate(tree, **kwargs):
     return {
         ast.FunctionDef: translate_function,
@@ -79,8 +82,7 @@ def translate_name(node):
         return node.id
     
 def translate_tuple(node):
-    print dir(node)
-    return "????"
+    return "?tuple?"
     
 def translate_bool_op(node):
     return " ".join(map(translate, [node.values[0], node.op, node.values[1]]))
@@ -100,13 +102,30 @@ def translate_attribute(node):
     }
 
 def translate_assign(node):
-    return "\n".join([
-        "%(target)s = %(value)s;" % {
-            'value': translate(node.value),
-            'target': translate(target),
-        }
-        for target in node.targets
-    ])
+    # For each target...
+    statements = []
+    for target in node.targets:
+        # Is it a tuple-to-tuple assignment?
+        if isinstance(target, ast.Tuple):
+            # Is the RHS a tuple?
+            if isinstance(node.value, ast.Tuple):
+                # Make sure they're the same length
+                if len(target.elts) != len(node.value.elts):
+                    raise CompileError("Assigning one tuple to another of different length.")
+                for t, v in zip(target.elts, node.value.elts):
+                    statements.append("%(target)s = %(value)s;" % {
+                        'value': translate(v),
+                        'target': translate(t),
+                    })
+            # No? Raise an error for now.
+            else:
+                raise CompileError("Assigning a non-tuple to a tuple.")
+        else:
+            statements.append("%(target)s = %(value)s;" % {
+                'value': translate(node.value),
+                'target': translate(target),
+            })
+    return "\n".join(statements)
 
 def translate_num(node):
     return str(node.n)
