@@ -4,6 +4,15 @@ There are a few things that are non-obvious to translate:
   classes in the python AST. The solution is a javascript class constructor that
   can deal with not being called with new.
   
+   Foo = function (a, b) {
+     if (this == undefined) {
+         return new Foo(a, b);
+     } else {
+         this.a = a;
+         this.b = b;
+     }
+    }
+  
 - Imports - An import of a python builtin module is special, an import of a
   user's module means it's added to the list of things to import. All objects
   are placed directly in their namespace based on absolute module path - 
