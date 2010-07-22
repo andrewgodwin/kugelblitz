@@ -21,6 +21,7 @@ def translate(tree, **kwargs):
         ast.BinOp: translate_bin_op,
         ast.UnaryOp: translate_unary_op,
         ast.Lambda: translate_lambda,
+        ast.Call: translate_call,
         
         ast.Expr: lambda n: translate(n.value),
         ast.And: lambda _: '&&',
@@ -129,6 +130,10 @@ def translate_assign(node):
 
 def translate_num(node):
     return str(node.n)
+
+def translate_call(node):
+    print dir(node)
+    return "?call?"
 
 def translate_class(node):
     

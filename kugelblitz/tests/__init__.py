@@ -140,6 +140,17 @@ class SimpleTests(unittest.TestCase):
             y = 1;
             """,
         )
+    
+    def test_function_call(self):
+        self.assertCompilesTo(
+            """
+            def foo(x, y, z):
+                return x + y
+            foo(1, 2, 3)
+            """,
+            """
+            """,
+        )
 
 if __name__ == "__main__":
     unittest.main()
