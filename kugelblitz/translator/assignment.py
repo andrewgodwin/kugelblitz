@@ -5,16 +5,18 @@ from kugelblitz.translator.expressions import BinOpTranslator
 class AssignTranslator(BaseTranslator):
     
     def translate_single_assign(self, target, value):
+        context = {
+            'target': self.sib_translate(target),
+            'value': self.sib_translate(value),
+            'module_name': self.module_name,
+        }
         if isinstance(target, ast.Name):
-            return "var %(target)s = %(value)s" % {
-                'target': self.sib_translate(target),
-                'value': self.sib_translate(value),
-            }
+            if self.module_name:
+                return "%(module_name)s.%(target)s = %(value)s" % context
+            else:
+                return "var %(target)s = %(value)s" % context
         else:
-            return "%(target)s = %(value)s" % {
-                'target': self.sib_translate(target),
-                'value': self.sib_translate(value),
-            }
+            return "%(target)s = %(value)s" % context
 
     def translate(self):
         statements = []

@@ -60,3 +60,17 @@ class CallTranslator(BodyTranslator):
             "func": func,
             "args_def": args_def,
         }
+
+class ForTranslator(BodyTranslator):
+    """
+    Translates for loops.
+    """
+    
+    def translate(self):
+        return "for (var _i = 0; _i < %(iter)s.length; _i++) {\n%(indent_child)svar %(target)s = %(iter)s[_i];\n%(indent_child)s%(body)s\n%(indent)s}" % {
+            "iter": self.sib_translate(self.node.iter),
+            "target": self.sib_translate(self.node.target),
+            "indent": self.indent,
+            "indent_child": self.indent_child,
+            "body": self.translate_body(self.node.body),
+        }

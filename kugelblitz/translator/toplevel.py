@@ -62,11 +62,18 @@ class FunctionTranslator(BodyTranslator):
             "indent": self.indent,
             "indent_child": self.indent_child,
             "docstring": docstring,
+            'module_name': self.module_name,
         }
-        if docstring:
-            return "%(docstring)s\n%(indent)svar %(name)s = function (%(args_def)s) {\n%(indent_child)s%(body_def)s\n%(indent)s}" % context
+        if self.module_name:
+            if docstring:
+                return "%(docstring)s\n%(indent)s%(module_name)s.%(name)s = function (%(args_def)s) {\n%(indent_child)s%(body_def)s\n%(indent)s}" % context
+            else:
+                return "%(module_name)s.%(name)s = function (%(args_def)s) {\n%(body_def)s\n%(indent)s}" % context
         else:
-            return "var %(name)s = function (%(args_def)s) {\n%(body_def)s\n%(indent)s}" % context
+            if docstring:
+                return "%(docstring)s\n%(indent)svar %(name)s = function (%(args_def)s) {\n%(indent_child)s%(body_def)s\n%(indent)s}" % context
+            else:
+                return "var %(name)s = function (%(args_def)s) {\n%(body_def)s\n%(indent)s}" % context
 
 
 class LambdaTranslator(BodyTranslator):

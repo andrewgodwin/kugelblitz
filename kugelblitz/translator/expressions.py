@@ -4,7 +4,7 @@ from kugelblitz.translator.base import BaseTranslator, ast
 class ExprTranslator(BaseTranslator):
     
     def translate(self):
-        return self.sub_translate(self.node.value)
+        return self.sib_translate(self.node.value)
     
 
 class BoolOpTranslator(BaseTranslator):
@@ -16,9 +16,9 @@ class BoolOpTranslator(BaseTranslator):
     
     def translate(self):
         return "(%(left)s %(op)s %(right)s)" % {
-            'left': self.sub_translate(self.node.values[0]),
+            'left': self.sib_translate(self.node.values[0]),
             'op': self.ops[self.node.op.__class__],
-            'right': self.sub_translate(self.node.values[1]),
+            'right': self.sib_translate(self.node.values[1]),
         }
     
 
@@ -34,7 +34,7 @@ class UnaryOpTranslator(BaseTranslator):
     def translate(self):
         return "%(op)s%(operand)s" % {
             'op': self.ops[self.node.op.__class__],
-            'operand': self.sub_translate(self.node.operand),
+            'operand': self.sib_translate(self.node.operand),
         }
 
 
@@ -58,14 +58,14 @@ class BinOpTranslator(BaseTranslator):
         # The ** operator isn't in JavaScript.
         if isinstance(self.node.op, ast.Pow):
             return "Math.pow(%s, %s)" % (
-                self.sub_translate(self.node.left),
-                self.sub_translate(self.node.right),
+                self.sib_translate(self.node.left),
+                self.sib_translate(self.node.right),
             )
         else:
             return "(%(left)s %(op)s %(right)s)" % {
-                'left': self.sub_translate(self.node.left),
+                'left': self.sib_translate(self.node.left),
                 'op': self.ops[self.node.op.__class__],
-                'right': self.sub_translate(self.node.right),
+                'right': self.sib_translate(self.node.right),
             }
 
 
@@ -88,9 +88,9 @@ class CompareTranslator(BaseTranslator):
         assert len(self.node.ops) == 1, "Cannot have multiple comparison"
         assert len(self.node.comparators) == 1, "Cannot have multiple comparison"
         return "%(left)s %(op)s %(comparator)s" % {
-            "left": self.sub_translate(self.node.left),
+            "left": self.sib_translate(self.node.left),
             "op": self.ops[self.node.ops[0].__class__],
-            "comparator": self.sub_translate(self.node.comparators[0]),
+            "comparator": self.sib_translate(self.node.comparators[0]),
         }
 
     
@@ -99,8 +99,8 @@ class SubscriptTranslator(BaseTranslator):
     def translate(self):
         if isinstance(self.node.slice, ast.Index):
             return "%(value)s[%(index)s]" % {
-                "value": self.sub_translate(self.node.value),
-                "index": self.sub_translate(self.node.slice.value),
+                "value": self.sib_translate(self.node.value),
+                "index": self.sib_translate(self.node.slice.value),
             }
         elif isinstance(self.node.slice, ast.Slice):
             # Translate the endpoints

@@ -10,7 +10,7 @@ def compile_file(filename):
     dest_filename = os.path.splitext(filename)[0] + ".js"
     with open(dest_filename, "w") as dest:
         with open(filename, "r") as src:
-            dest.write(translate_string(src.read()))
+            dest.write(translate_string(src.read(), "VC.core"))
 
 def main():
     # Read in the filenames from the commandline

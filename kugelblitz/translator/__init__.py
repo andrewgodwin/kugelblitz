@@ -4,7 +4,7 @@ from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator,
 from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator, CompareTranslator, SubscriptTranslator
 from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator, DictTranslator, StrTranslator
 from kugelblitz.translator.assignment import AssignTranslator, AugAssignTranslator
-from kugelblitz.translator.control import IfTranslator, IfExprTranslator, RaiseTranslator, ReturnTranslator, CallTranslator
+from kugelblitz.translator.control import IfTranslator, IfExprTranslator, RaiseTranslator, ReturnTranslator, CallTranslator, ForTranslator
 
 def wrap_old_translator(func):
     class WrappedTranslator(BaseTranslator):
@@ -33,7 +33,7 @@ def get_translator(node, **kwargs):
             
             ast.Print: None,
             
-            ast.For: None,
+            ast.For: ForTranslator,
             ast.While: None,
             ast.If: IfTranslator,
             ast.With: None,
@@ -90,5 +90,8 @@ def translate_attribute(node):
         "right": node.attr,
     }
 
-def translate_string(string):
-    return get_translator(ast.parse(string+"\n")).translate()
+def translate_string(string, module_name=None):
+    return get_translator(
+        node = ast.parse(string+"\n"),
+        module_name = module_name,
+    ).translate()

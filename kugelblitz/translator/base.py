@@ -7,13 +7,22 @@ class BaseTranslator(object):
     
     """
     Base translator class. Instantiated for each node.
+    
+    indent_level says how far indented this node is. All nodes output without
+    prefixing themselves with indent characters; only if they have a newline
+    do they need to add them.
+    
+    module_name specifies the module prefix to append to all items in this
+    node, if it contains any; it's lost as soon as you use sub_translate
+    (since it's only needed for top-level things in modules)
     """
     
     INDENT_STRING = "    "
     
-    def __init__(self, node, indent_level=0):
+    def __init__(self, node, indent_level=0, module_name=None):
         self.node = node
         self.indent_level = indent_level
+        self.module_name = module_name
     
     @property
     def indent(self):
@@ -34,6 +43,7 @@ class BaseTranslator(object):
         return self.get_translator(
             node,
             indent_level = self.indent_level + 1,
+            module_name = None,
         ).translate()
     
     def sib_translate(self, node):
@@ -43,4 +53,5 @@ class BaseTranslator(object):
         return self.get_translator(
             node,
             indent_level = self.indent_level,
+            module_name = self.module_name,
         ).translate()
