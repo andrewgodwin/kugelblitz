@@ -5,9 +5,11 @@ from kugelblitz.translator.exceptions import CompileError
 class IfTranslator(BodyTranslator):
 
     def translate(self):
-        s = ["if (%(test_def)s) { %(body_def)s }" % {
+        s = ["if (%(test_def)s) {\n%(indent_child)s%(body_def)s\n%(indent)s}" % {
             'test_def': self.sub_translate(self.node.test),
             'body_def': self.translate_body(self.node.body),
+            'indent': self.indent,
+            'indent_child': self.indent_child,
         }]
         if self.node.orelse:
             s.append("else { %(orelse_def)s }" % {

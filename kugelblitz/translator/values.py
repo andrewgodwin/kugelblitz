@@ -35,10 +35,19 @@ class DictTranslator(BaseTranslator):
             raise CompileError("Invalid value for dict key: %r" % value)
     
     def translate(self):
-        return "{%s}" % ",\n".join([
-            "%s: %s" % (self.str_translate(k), self.sub_translate(v))
-            for k, v in zip(self.node.keys, self.node.values)
-        ])
+        # If it's empty, return on one line
+        if not self.node.keys:
+            return "{}"
+        else:
+            # Otherwise, return nicely indented
+            return "{\n%s%s\n%s}" % (
+                self.indent_child,
+                (",\n%s" % self.indent).join([
+                    "%s: %s" % (self.str_translate(k), self.sub_translate(v))
+                    for k, v in zip(self.node.keys, self.node.values)
+                ]),
+                self.indent,
+            )
 
 class StrTranslator(BaseTranslator):
     def translate(self):

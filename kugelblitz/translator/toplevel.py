@@ -5,17 +5,20 @@ class BodyTranslator(BaseTranslator):
     
     separator = '\n'
     
-    def translate_body(self, body):
+    def translate_body(self, body, sib=False):
+        trans_method = self.sib_translate if sib else self.sub_translate
         s = []
         for node in body:
             if isinstance(node, ast.Pass):
                 continue
-            translator = self.get_translator(node)
             if isinstance(node, ast.If):
-                s.append(translator.translate())
+                s.append(trans_method(node))
             else:
-                s.append('%s;' % translator.translate())
-        return self.separator.join(s)
+                s.append('%s;' % trans_method(node))
+        if sib:
+            return (self.separator + self.indent).join(s)
+        else:
+            return (self.separator + self.indent_child).join(s)
 
 
 class ModuleTranslator(BodyTranslator):
@@ -26,7 +29,7 @@ class ModuleTranslator(BodyTranslator):
     separator = '\n\n'
     
     def translate(self):
-        return self.translate_body(self.node.body)
+        return self.translate_body(self.node.body, sib=True)
 
 
 class FunctionTranslator(BodyTranslator):
@@ -34,13 +37,36 @@ class FunctionTranslator(BodyTranslator):
     Translates a function. Includes function name in output.
     """
     
+    def get_body(self):
+        """
+        Returns the body, and a possible docstring.
+        """
+        if self.node.body and isinstance(self.node.body[0], ast.Expr) and isinstance(self.node.body[0].value, ast.Str):
+            docstring = ("\n%s" % self.indent).join([
+                "// %s" % line.strip()
+                for line in self.node.body[0].value.s.strip().split("\n")
+            ])
+            body = self.node.body[1:]
+        else:
+            docstring = None
+            body = self.node.body
+        return docstring, body
+    
     def translate(self):
+        docstring, body = self.get_body()
         args_def = ", ".join([arg.id for arg in self.node.args.args])
-        return "var %(name)s = function (%(args_def)s) { %(body_def)s }" % {
+        context = {
             "args_def": args_def,
-            "body_def": self.translate_body(self.node.body),
+            "body_def": self.translate_body(body),
             "name": self.node.name,
+            "indent": self.indent,
+            "indent_child": self.indent_child,
+            "docstring": docstring,
         }
+        if docstring:
+            return "%(docstring)s\n%(indent)svar %(name)s = function (%(args_def)s) {\n%(indent_child)s%(body_def)s\n%(indent)s}" % context
+        else:
+            return "var %(name)s = function (%(args_def)s) {\n%(body_def)s\n%(indent)s}" % context
 
 
 class LambdaTranslator(BodyTranslator):

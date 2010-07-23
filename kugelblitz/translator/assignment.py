@@ -7,13 +7,13 @@ class AssignTranslator(BaseTranslator):
     def translate_single_assign(self, target, value):
         if isinstance(target, ast.Name):
             return "var %(target)s = %(value)s" % {
-                'target': self.sub_translate(target),
-                'value': self.sub_translate(value),
+                'target': self.sib_translate(target),
+                'value': self.sib_translate(value),
             }
         else:
             return "%(target)s = %(value)s" % {
-                'target': self.sub_translate(target),
-                'value': self.sub_translate(value),
+                'target': self.sib_translate(target),
+                'value': self.sib_translate(value),
             }
 
     def translate(self):

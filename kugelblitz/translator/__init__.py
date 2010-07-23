@@ -15,7 +15,7 @@ def wrap_old_translator(func):
 def translate(node):
     return get_translator(node).translate()
 
-def get_translator(node):
+def get_translator(node, **kwargs):
     try:
         return {
             # mod
@@ -77,7 +77,7 @@ def get_translator(node):
             ast.List: ListTranslator,
             ast.Tuple: ListTranslator,
             
-        }[node.__class__](node)
+        }[node.__class__](node, **kwargs)
     except TypeError:
         raise CompileError("No translator available for %s." % node.__class__.__name__)
 
