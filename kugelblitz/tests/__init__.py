@@ -232,6 +232,20 @@ class SimpleTests(unittest.TestCase):
             """,
         )
     
+    def test_for(self):
+        self.assertCompilesTo(
+            """
+            for item in some_list:
+                x = item + 2
+            """,
+            """
+            for (var _i = 0; _i < some_list.length; _i++) {
+                var item = some_list[_i];
+                var x = (item + 2);
+            };
+            """,
+        )
+    
     def test_bracketing(self):
         self.assertCompilesTo(
             """
