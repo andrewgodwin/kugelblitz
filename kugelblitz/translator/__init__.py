@@ -2,7 +2,7 @@ from kugelblitz.translator.base import ast, BaseTranslator
 from kugelblitz.translator.exceptions import CompileError
 from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator, LambdaTranslator, ClassTranslator
 from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator, CompareTranslator, SubscriptTranslator
-from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator
+from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator, DictTranslator, StrTranslator
 from kugelblitz.translator.assignment import AssignTranslator, AugAssignTranslator
 from kugelblitz.translator.control import IfTranslator, IfExprTranslator, RaiseTranslator, ReturnTranslator, CallTranslator
 
@@ -59,7 +59,7 @@ def get_translator(node):
             ast.UnaryOp: UnaryOpTranslator,
             ast.Lambda: LambdaTranslator,
             ast.IfExp: IfExprTranslator,
-            ast.Dict: None,
+            ast.Dict: DictTranslator,
             #ast.Set: None, Not in 2.6
             ast.ListComp: None,
             #ast.SetComp: None, Not in 2.6
@@ -70,7 +70,7 @@ def get_translator(node):
             ast.Call: CallTranslator,
             ast.Repr: None,
             ast.Num: NumTranslator,
-            ast.Str: None,
+            ast.Str: StrTranslator,
             ast.Attribute: wrap_old_translator(translate_attribute),
             ast.Subscript: SubscriptTranslator,            
             ast.Name: NameTranslator,
@@ -90,7 +90,5 @@ def translate_attribute(node):
         "right": node.attr,
     }
 
-
-if __name__ == "__main__":
-    import sys
-    print get_translator(ast.parse(sys.stdin.read()+"\n")).translate()
+def translate_string(string):
+    return get_translator(ast.parse(string+"\n")).translate()
