@@ -1,19 +1,40 @@
 from kugelblitz.translator.base import ast, BaseTranslator
 from kugelblitz.translator.exceptions import CompileError
-from kugelblitz.translator.toplevel import ModuleTranslator, FunctionTranslator, LambdaTranslator, ClassTranslator
-from kugelblitz.translator.expressions import ExprTranslator, BinOpTranslator, BoolOpTranslator, UnaryOpTranslator, CompareTranslator, SubscriptTranslator
-from kugelblitz.translator.values import NumTranslator, ListTranslator, NameTranslator, DictTranslator, StrTranslator
-from kugelblitz.translator.assignment import AssignTranslator, AugAssignTranslator
-from kugelblitz.translator.control import IfTranslator, IfExprTranslator, RaiseTranslator, ReturnTranslator, CallTranslator, ForTranslator
-
-def wrap_old_translator(func):
-    class WrappedTranslator(BaseTranslator):
-        def translate(self):
-            return func(self.node)
-    return WrappedTranslator
-
-def translate(node):
-    return get_translator(node).translate()
+from kugelblitz.translator.toplevel import (
+    ModuleTranslator,
+    FunctionTranslator,
+    LambdaTranslator,
+    ClassTranslator,
+)
+from kugelblitz.translator.expressions import (
+    ExprTranslator,
+    BinOpTranslator,
+    BoolOpTranslator,
+    UnaryOpTranslator,
+    CompareTranslator,
+    SubscriptTranslator,
+    AttributeTranslator,
+    DeleteTranslator,
+)
+from kugelblitz.translator.values import (
+    NumTranslator,
+    ListTranslator,
+    NameTranslator,
+    DictTranslator,
+    StrTranslator,
+)
+from kugelblitz.translator.assignment import (
+    AssignTranslator,
+    AugAssignTranslator,
+)
+from kugelblitz.translator.control import (
+    IfTranslator,
+    IfExprTranslator,
+    RaiseTranslator,
+    ReturnTranslator,
+    CallTranslator,
+    ForTranslator,
+)
 
 def get_translator(node, **kwargs):
     try:
@@ -27,7 +48,7 @@ def get_translator(node, **kwargs):
             ast.ClassDef: ClassTranslator,
             ast.Return: ReturnTranslator,
             
-            ast.Delete: wrap_old_translator(translate_delete),
+            ast.Delete: DeleteTranslator,
             ast.Assign: AssignTranslator,
             ast.AugAssign: AugAssignTranslator,
             
@@ -71,7 +92,7 @@ def get_translator(node, **kwargs):
             ast.Repr: None,
             ast.Num: NumTranslator,
             ast.Str: StrTranslator,
-            ast.Attribute: wrap_old_translator(translate_attribute),
+            ast.Attribute: AttributeTranslator,
             ast.Subscript: SubscriptTranslator,            
             ast.Name: NameTranslator,
             ast.List: ListTranslator,
@@ -80,15 +101,6 @@ def get_translator(node, **kwargs):
         }[node.__class__](node, **kwargs)
     except TypeError:
         raise CompileError("No translator available for %s." % node.__class__.__name__)
-
-def translate_delete(node):
-    return ';\n'.join('delete %s' % translate(n) for n in node.targets)
-
-def translate_attribute(node):
-    return "%(left)s.%(right)s" % {
-        "left": translate(node.value),
-        "right": node.attr,
-    }
 
 def translate_string(string, module_name=None):
     return get_translator(

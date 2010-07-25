@@ -3,6 +3,8 @@ try:
 except ImportError:
     from kugelblitz.lib import ast
 
+from kugelblitz.translator.context import Context
+
 class BaseTranslator(object):
     
     """
@@ -19,10 +21,11 @@ class BaseTranslator(object):
     
     INDENT_STRING = "    "
     
-    def __init__(self, node, indent_level=0, module_name=None):
+    def __init__(self, node, indent_level=0, module_name=None, context=None):
         self.node = node
         self.indent_level = indent_level
         self.module_name = module_name
+        self.context = context or Context()
     
     @property
     def indent(self):
@@ -44,6 +47,7 @@ class BaseTranslator(object):
             node,
             indent_level = self.indent_level + 1,
             module_name = None,
+            context = Context(self.context),
         ).translate()
     
     def sib_translate(self, node):
@@ -54,4 +58,5 @@ class BaseTranslator(object):
             node,
             indent_level = self.indent_level,
             module_name = self.module_name,
+            context = self.context,
         ).translate()

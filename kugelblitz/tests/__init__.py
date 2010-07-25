@@ -3,7 +3,7 @@ try:
     import ast
 except ImportError:
     from kugelblitz.lib import ast
-from kugelblitz.translator import translate
+from kugelblitz.translator import translate_string
 
 class SimpleTests(unittest.TestCase):
     
@@ -37,7 +37,7 @@ class SimpleTests(unittest.TestCase):
         Assertion that the source compiles to the output.
         Doesn't fail horribly on whitespace differences.
         """
-        compiled = translate(ast.parse(self.unindent_code(source)))
+        compiled = translate_string(self.unindent_code(source))
         self.assertEqual(
             " ".join(compiled.split()),
             " ".join(output.split()),

@@ -133,3 +133,27 @@ class SubscriptTranslator(BaseTranslator):
             
         else:
             raise CompileError("Unknown slice type %s" % type(self.node.slice))
+
+
+class AttributeTranslator(BaseTranslator):
+    """
+    Translates attribute access, e.g 'foo.bar()'.
+    """
+    
+    def translate(self):
+        return "%(left)s.%(right)s" % {
+            "left": self.sib_translate(self.node.value),
+            "right": self.node.attr,
+        }
+
+
+class DeleteTranslator(BaseTranslator):
+    """
+    Translates deletion: 'del foo' to 'delete foo;'
+    """
+    
+    def translate(self):
+        return ';\n'.join(
+            'delete %s' % self.sib_translate(n)
+            for n in self.node.targets
+        )

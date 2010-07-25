@@ -17,7 +17,11 @@ class NameTranslator(BaseTranslator):
         elif self.node.id == "True":
             return "true"
         else:
-            return self.node.id
+            # See if this variable is already defined elsewhere.
+            if self.node.id in self.context:
+                return self.context[self.node.id]
+            else:
+                return self.node.id
 
 class ListTranslator(BaseTranslator):
     def translate(self):
